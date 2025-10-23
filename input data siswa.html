@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Input Data Siswa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (xlsx) library for reading Excel files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- FileSaver.js for saving files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .c-list-applet__table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+            overflow: hidden; /* This is for border-radius on the table itself */
+            min-width: 1800px; /* Increased min-width for more columns */
+        }
+        .c-list-applet__table th,
+        .c-list-applet__table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+            white-space: nowrap; /* Prevent text wrapping in cells */
+        }
+        .c-list-applet__table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            position: relative; /* For sort button positioning */
+        }
+        .c-list-applet__sort-indicator {
+            display: inline-flex; /* Use inline-flex to align icons */
+            align-items: center;
+            justify-content: center;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+            width: 1.25rem; /* Adjust size as needed */
+            height: 1.25rem; /* Adjust size as needed */
+        }
+        .c-list-applet__sort-indicator svg {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.2s ease-in-out;
+        }
+        .c-list-applet__sort-indicator .asc-icon {
+            transform: rotate(0deg);
+        }
+        .c-list-applet__sort-indicator .desc-icon {
+            transform: rotate(180deg);
+        }
+        .c-list-applet__records {
+            font-weight: 500;
+            color: #6b7280;
+            margin-top: 1rem;
+            display: block;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Styling for the form */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #4b5563;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .submit-button {
+            background-color: #22c55e;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .submit-button:hover {
+            background-color: #16a34a;
+        }
+
+        /* New styles for Edit and Delete buttons */
+        .edit-button {
+            background-color: #f59e0b; /* Amber */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+            margin-right: 0.5rem; /* Added margin for spacing */
+        }
+        .edit-button:hover {
+            background-color: #d97706; /* Darker Amber */
+        }
+        .delete-button {
+            background-color: #ef4444; /* Red */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .delete-button:hover {
+            background-color: #dc2626; /* Darker Red */
+        }
+        .cancel-button {
+            background-color: #6b7280; /* Gray */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+            margin-right: 0.5rem;
+        }
+        .cancel-button:hover {
+            background-color: #4b5563; /* Darker Gray */
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .modal-content h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+        .modal-content p {
+            margin-bottom: 1.5rem;
+            color: #4b5563;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .modal-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .modal-button.confirm {
+            background-color: #ef4444;
+            color: white;
+        }
+        .modal-button.confirm:hover {
+            background-color: #dc2626;
+        }
+        .modal-button.cancel {
+            background-color: #d1d5db;
+            color: #374151;
+        }
+        .modal-button.cancel:hover {
+            background-color: #9ca3af;
+        }
+        /* Style for import button */
+        .import-button {
+            background-color: #0ea5e9; /* Sky blue */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .import-button:hover {
+            background-color: #0284c7; /* Darker sky blue */
+        }
+        /* Style for export button */
+        .export-button {
+            background-color: #10b981; /* Emerald green */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .export-button:hover {
+            background-color: #059669; /* Darker emerald green */
+        }
+        /* Style for template download button */
+        .template-button {
+            background-color: #8b5cf6; /* Violet */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .template-button:hover {
+            background-color: #7c3aed; /* Darker violet */
+        }
+        /* Global search input style */
+        #globalSearchInput {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            box-sizing: border-box;
+            margin-bottom: 1rem;
+        }
+        /* Style for Delete All Data button */
+        .delete-all-button {
+            background-color: #dc2626; /* Red-600 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .delete-all-button:hover {
+            background-color: #b91c1c; /* Red-700 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Aplikasi Input Data Siswa</h1>
+
+        <!-- Form Input Data Siswa -->
+        <div class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">A. Data Siswa</h2>
+            <form id="studentForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-group">
+                    <label for="namaLengkap">Nama Lengkap:</label>
+                    <input type="text" id="namaLengkap" name="Nama_Lengkap" placeholder="Isi Nama Lengkap" required class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="jenisKelamin">Jenis Kelamin:</label>
+                    <select id="jenisKelamin" name="Jenis_Kelamin" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="nisn">NISN:</label>
+                    <input type="text" id="nisn" name="NISN" placeholder="*********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="kebangsaan">Kebangsaan:</label>
+                    <input type="text" id="kebangsaan" name="Kebangsaan" value="Indonesia" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="nikSiswa">NIK Siswa:</label>
+                    <input type="text" id="nikSiswa" name="NIK_Siswa" placeholder="127**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="noKk">No KK:</label>
+                    <input type="text" id="noKk" name="No_KK" placeholder="127**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tempatLahir">Tempat Lahir:</label>
+                    <input type="text" id="tempatLahir" name="Tempat_Lahir" placeholder="Isi Kota Tempat Lahir" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tanggalLahir">Tanggal Lahir:</label>
+                    <input type="date" id="tanggalLahir" name="Tanggal_Lahir" placeholder="hh/bb/tttt" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="noAktaLahir">No Akta Lahir:</label>
+                    <input type="text" id="noAktaLahir" name="No_Akta_Lahir" placeholder="1271-LT-********-****" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="kebutuhanKhusus">Kebutuhan Khusus:</label>
+                    <select id="kebutuhanKhusus" name="Kebutuhan_Khusus" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Netral (A)">Netral (A)</option>
+                        <option value="Rungu (B)">Rungu (B)</option>
+                        <option value="Grahita ringan (C)">Grahita ringan (C)</option>
+                        <option value="Grahita sedang (C1)">Grahita sedang (C1)</option>
+                        <option value="Daksa ringan (D)">Daksa ringan (D)</option>
+                        <option value="Daksa sedang (D1)">Daksa sedang (D1)</option>
+                        <option value="Laras (E)">Laras (E)</option>
+                        <option value="Wicara (F)">Wicara (F)</option>
+                        <option value="Hyperaktif (H)">Hyperaktif (H)</option>
+                        <option value="Cerdas istimewah (I)">Cerdas istimewah (I)</option>
+                        <option value="Bakat istimewah (J)">Bakat istimewah (J)</option>
+                        <option value="Kesulitan belajar (K)">Kesulitan belajar (K)</option>
+                        <option value="Narkoba (L)">Narkoba (L)</option>
+                        <option value="Indigo (O)">Indigo (O)</option>
+                        <option value="Down Syndrome (P)">Down Syndrome (P)</option>
+                        <option value="Autis (Q)">Autis (Q)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="agamaKepercayaan">Agama & Kepercayaan:</label>
+                    <select id="agamaKepercayaan" name="Agama_Kepercayaan" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Islam">Islam</option>
+                        <option value="Kristen">Kristen</option>
+                        <option value="Katolik">Katolik</option>
+                        <option value="Hindu">Hindu</option>
+                        <option value="Buddha">Buddha</option>
+                        <option value="Konghucu">Konghucu</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="alamatLengkap">Alamat Lengkap:</label>
+                    <input type="text" id="alamatLengkap" name="Alamat_Lengkap" placeholder="Isi Alamat Lengkap" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="rt">RT:</label>
+                    <input type="text" id="rt" name="RT" placeholder="00" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="rw">RW:</label>
+                    <input type="text" id="rw" name="RW" placeholder="00" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="dusunLingkungan">Dusun/Lingkungan:</label>
+                    <input type="text" id="dusunLingkungan" name="Dusun_Lingkungan" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="desaKelurahan">Desa/Kelurahan:</label>
+                    <input type="text" id="desaKelurahan" name="Desa_Kelurahan" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="kodePos">Kode Pos:</label>
+                    <input type="text" id="kodePos" name="Kode_Pos" placeholder="*****" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tempatTinggal">Tempat Tinggal:</label>
+                    <select id="tempatTinggal" name="Tempat_Tinggal" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Bersama Orang Tua">Bersama Orang Tua</option>
+                        <option value="Wali">Wali</option>
+                        <option value="Panti Asuhan">Panti Asuhan</option>
+                        <option value="Asrama">Asrama</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modaTransportasi">Moda Transportasi:</label>
+                    <select id="modaTransportasi" name="Moda_Transportasi" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>Jalan Kaki</option>
+                        <option>Angkutan umum/bus/pete</option>
+                        <option>Mobil/bus antar jemput</option>
+                        <option>Kereta api</option>
+                        <option>Ojek</option>
+                        <option>Andong/bandi/sado/dokar/delman/becak</option>
+                        <option>Perahu penyebrangan/rakit/getek</option>
+                        <option>kuda</option>
+                        <option>Sepeda</option>
+                        <option>Sepeda motor</option>
+                        <option>Mobil pribadi</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="anakKe">Anak ke-:</label>
+                    <input type="text" id="anakKe" name="Anak_Ke" placeholder="Anak Keberapa Dalam Keluarga" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <!-- B. Data Ayah Kandung -->
+                <div class="md:col-span-3">
+                    <h2 class="text-2xl font-semibold mb-4 mt-8 text-gray-700">B. Data Ayah Kandung</h2>
+                </div>
+                <div class="form-group">
+                    <label for="namaAyah">Nama Ayah:</label>
+                    <input type="text" id="namaAyah" name="Nama_Ayah" placeholder="Isi Nama Lengkap Ayah" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="nikAyah">NIK Ayah:</label>
+                    <input type="text" id="nikAyah" name="NIK_Ayah" placeholder="127**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tahunLahirAyah">Tahun Lahir Ayah:</label>
+                    <input type="text" id="tahunLahirAyah" name="Tahun_Lahir_Ayah" placeholder="19**" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="pendidikanAyah">Pendidikan Ayah:</label>
+                    <select id="pendidikanAyah" name="Pendidikan_Ayah" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>PAUD</option>
+                        <option>TK / Sederajat</option>
+                        <option>SD / Sederajat</option>
+                        <option>SMP / Sederajat</option>
+                        <option>SMA / Sederajat</option>
+                        <option>D1</option>
+                        <option>D2</option>
+                        <option>D3</option>
+                        <option>D4</option>
+                        <option>S1</option>
+                        <option>S2</option>
+                        <option>S2 Terapan</option>
+                        <option>S3</option>
+                        <option>S3 Terapan</option>
+                        <option>Paket A</option>
+                        <option>Paket B</option>
+                        <option>Paket C</option>
+                        <option>Non Formal</option>
+                        <option>Informal</option>
+                        <option>Tidak Sekolah</option>
+                        <option>Putus SD</option>
+                        <option>Profesi</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pekerjaanAyah">Pekerjaan Ayah:</label>
+                    <select id="pekerjaanAyah" name="Pekerjaan_Ayah" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>Tidak Bekerja</option>
+                        <option>Nelayan</option>
+                        <option>Petani</option>
+                        <option>Peternak</option>
+                        <option>PNS/TNI/Polri</option>
+                        <option>Karyawan Swasta</option>
+                        <option>Pedagang Kecil</option>
+                        <option>Pedagang Besar</option>
+                        <option>Wiraswasta</option>
+                        <option>Wirausaha</option>
+                        <option>Buruh</option>
+                        <option>Pensiunan</option>
+                        <option>Tenaga Kerja Indonesia</option>
+                        <option>Karyawan BUMN</option>
+                        <option>Tidak dapat diterapkan</option>
+                        <option>Sudah Meninggal</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="penghasilanAyah">Penghasilan per Bulan:</label>
+                    <input type="text" id="penghasilanAyah" name="Penghasilan_per_Bulan_Ayah" placeholder="Isi Angka tanpa (,)" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="kebutuhanKhususAyah">Berkebutuhan Khusus Ayah:</label>
+                    <select id="kebutuhanKhususAyah" name="Berkebutuhan_Khusus_Ayah" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Netral (A)">Netral (A)</option>
+                        <option value="Rungu (B)">Rungu (B)</option>
+                        <option value="Grahita ringan (C)">Grahita ringan (C)</option>
+                        <option value="Grahita sedang (C1)">Grahita sedang (C1)</option>
+                        <option value="Daksa ringan (D)">Daksa ringan (D)</option>
+                        <option value="Daksa sedang (D1)">Daksa sedang (D1)</option>
+                        <option value="Laras (E)">Laras (E)</option>
+                        <option value="Wicara (F)">Wicara (F)</option>
+                        <option value="Hyperaktif (H)">Hyperaktif (H)</option>
+                        <option value="Cerdas istimewah (I)">Cerdas istimewah (I)</option>
+                        <option value="Bakat istimewah (J)">Bakat istimewah (J)</option>
+                        <option value="Kesulitan belajar (K)">Kesulitan belajar (K)</option>
+                        <option value="Narkoba (L)">Narkoba (L)</option>
+                        <option value="Indigo (O)">Indigo (O)</option>
+                        <option value="Down Syndrome (P)">Down Syndrome (P)</option>
+                        <option value="Autis (Q)">Autis (Q)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="noHpAyah">No. HP Ayah:</label>
+                    <input type="text" id="noHpAyah" name="No_HP_Ayah" placeholder="08**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- C. Data Ibu Kandung -->
+                <div class="md:col-span-3">
+                    <h2 class="text-2xl font-semibold mb-4 mt-8 text-gray-700">C. Data Ibu Kandung</h2>
+                </div>
+                <div class="form-group">
+                    <label for="namaIbu">Nama Ibu:</label>
+                    <input type="text" id="namaIbu" name="Nama_Ibu" placeholder="Isi Nama Lengkap Ibu" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="nikIbu">NIK Ibu:</label>
+                    <input type="text" id="nikIbu" name="NIK_Ibu" placeholder="127**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tahunLahirIbu">Tahun Lahir Ibu:</label>
+                    <input type="text" id="tahunLahirIbu" name="Tahun_Lahir_Ibu" placeholder="19**" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="pendidikanIbu">Pendidikan Ibu:</label>
+                    <select id="pendidikanIbu" name="Pendidikan_Ibu" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>PAUD</option>
+                        <option>TK / Sederajat</option>
+                        <option>SD / Sederajat</option>
+                        <option>SMP / Sederajat</option>
+                        <option>SMA / Sederajat</option>
+                        <option>D1</option>
+                        <option>D2</option>
+                        <option>D3</option>
+                        <option>D4</option>
+                        <option>S1</option>
+                        <option>S2</option>
+                        <option>S2 Terapan</option>
+                        <option>S3</option>
+                        <option>S3 Terapan</option>
+                        <option>Paket A</option>
+                        <option>Paket B</option>
+                        <option>Paket C</option>
+                        <option>Non Formal</option>
+                        <option>Informal</option>
+                        <option>Tidak Sekolah</option>
+                        <option>Putus SD</option>
+                        <option>Profesi</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pekerjaanIbu">Pekerjaan Ibu:</label>
+                    <select id="pekerjaanIbu" name="Pekerjaan_Ibu" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>Tidak Bekerja</option>
+                        <option>Nelayan</option>
+                        <option>Petani</option>
+                        <option>Peternak</option>
+                        <option>PNS/TNI/Polri</option>
+                        <option>Karyawan Swasta</option>
+                        <option>Pedagang Kecil</option>
+                        <option>Pedagang Besar</option>
+                        <option>Wiraswasta</option>
+                        <option>Wirausaha</option>
+                        <option>Buruh</option>
+                        <option>Pensiunan</option>
+                        <option>Tenaga Kerja Indonesia</option>
+                        <option>Karyawan BUMN</option>
+                        <option>Tidak dapat diterapkan</option>
+                        <option>Sudah Meninggal</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="penghasilanIbu">Penghasilan per Bulan:</label>
+                    <input type="text" id="penghasilanIbu" name="Penghasilan_per_Bulan_Ibu" placeholder="Isi Angka tanpa (,)" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="kebutuhanKhususIbu">Berkebutuhan Khusus Ibu:</label>
+                    <select id="kebutuhanKhususIbu" name="Berkebutuhan_Khusus_Ibu" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Netral (A)">Netral (A)</option>
+                        <option value="Rungu (B)">Rungu (B)</option>
+                        <option value="Grahita ringan (C)">Grahita ringan (C)</option>
+                        <option value="Grahita sedang (C1)">Grahita sedang (C1)</option>
+                        <option value="Daksa ringan (D)">Daksa ringan (D)</option>
+                        <option value="Daksa sedang (D1)">Daksa sedang (D1)</option>
+                        <option value="Laras (E)">Laras (E)</option>
+                        <option value="Wicara (F)">Wicara (F)</option>
+                        <option value="Hyperaktif (H)">Hyperaktif (H)</option>
+                        <option value="Cerdas istimewah (I)">Cerdas istimewah (I)</option>
+                        <option value="Bakat istimewah (J)">Bakat istimewah (J)</option>
+                        <option value="Kesulitan belajar (K)">Kesulitan belajar (K)</option>
+                        <option value="Narkoba (L)">Narkoba (L)</option>
+                        <option value="Indigo (O)">Indigo (O)</option>
+                        <option value="Down Syndrome (P)">Down Syndrome (P)</option>
+                        <option value="Autis (Q)">Autis (Q)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="noHpIbu">No. HP Ibu:</label>
+                    <input type="text" id="noHpIbu" name="No_HP_Ibu" placeholder="08**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- D. Data Wali (jika ada) -->
+                <div class="md:col-span-3">
+                    <h2 class="text-2xl font-semibold mb-4 mt-8 text-gray-700">D. Data Wali (jika ada)</h2>
+                </div>
+                <div class="form-group">
+                    <label for="namaWali">Nama Wali:</label>
+                    <input type="text" id="namaWali" name="Nama_Wali" placeholder="Isi Nama Lengkap Wali" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="hubunganWali">Hubungan Wali:</label>
+                    <input type="text" id="hubunganWali" name="Hubungan_Wali" placeholder="Status Hubungan Dalam Keluarga" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="pendidikanWali">Pendidikan Wali:</label>
+                    <select id="pendidikanWali" name="Pendidikan_Wali" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>PAUD</option>
+                        <option>TK / Sederajat</option>
+                        <option>SD / Sederajat</option>
+                        <option>SMP / Sederajat</option>
+                        <option>SMA / Sederajat</option>
+                        <option>D1</option>
+                        <option>D2</option>
+                        <option>D3</option>
+                        <option>D4</option>
+                        <option>S1</option>
+                        <option>S2</option>
+                        <option>S2 Terapan</option>
+                        <option>S3</option>
+                        <option>S3 Terapan</option>
+                        <option>Paket A</option>
+                        <option>Paket B</option>
+                        <option>Paket C</option>
+                        <option>Non Formal</option>
+                        <option>Informal</option>
+                        <option>Tidak Sekolah</option>
+                        <option>Putus SD</option>
+                        <option>Profesi</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pekerjaanWali">Pekerjaan Wali:</label>
+                    <select id="pekerjaanWali" name="Pekerjaan_Wali" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option>Tidak Bekerja</option>
+                        <option>Nelayan</option>
+                        <option>Petani</option>
+                        <option>Peternak</option>
+                        <option>PNS/TNI/Polri</option>
+                        <option>Karyawan Swasta</option>
+                        <option>Pedagang Kecil</option>
+                        <option>Pedagang Besar</option>
+                        <option>Wiraswasta</option>
+                        <option>Wirausaha</option>
+                        <option>Buruh</option>
+                        <option>Pensiunan</option>
+                        <option>Tenaga Kerja Indonesia</option>
+                        <option>Karyawan BUMN</option>
+                        <option>Tidak dapat diterapkan</option>
+                        <option>Sudah Meninggal</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="penghasilanWali">Penghasilan per Bulan:</label>
+                    <input type="text" id="penghasilanWali" name="Penghasilan_per_Bulan_Wali" placeholder="Isi Angka tanpa (,)" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="kebutuhanKhususWali">Berkebutuhan Khusus Wali:</label>
+                    <select id="kebutuhanKhususWali" name="Berkebutuhan_Khusus_Wali" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Pilih</option>
+                        <option value="Netral (A)">Netral (A)</option>
+                        <option value="Rungu (B)">Rungu (B)</option>
+                        <option value="Grahita ringan (C)">Grahita ringan (C)</option>
+                        <option value="Grahita sedang (C1)">Grahita sedang (C1)</option>
+                        <option value="Daksa ringan (D)">Daksa ringan (D)</option>
+                        <option value="Daksa sedang (D1)">Daksa sedang (D1)</option>
+                        <option value="Laras (E)">Laras (E)</option>
+                        <option value="Wicara (F)">Wicara (F)</option>
+                        <option value="Hyperaktif (H)">Hyperaktif (H)</option>
+                        <option value="Cerdas istimewah (I)">Cerdas istimewah (I)</option>
+                        <option value="Bakat istimewah (J)">Bakat istimewah (J)</option>
+                        <option value="Kesulitan belajar (K)">Kesulitan belajar (K)</option>
+                        <option value="Narkoba (L)">Narkoba (L)</option>
+                        <option value="Indigo (O)">Indigo (O)</option>
+                        <option value="Down Syndrome (P)">Down Syndrome (P)</option>
+                        <option value="Autis (Q)">Autis (Q)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="noHpWali">No. HP Wali:</label>
+                    <input type="text" id="noHpWali" name="No_HP_Wali" placeholder="08**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- E. Pendidikan Sebelumnya (jika ada) -->
+                <div class="md:col-span-3">
+                    <h2 class="text-2xl font-semibold mb-4 mt-8 text-gray-700">E. Pendidikan Sebelumnya (jika ada)</h2>
+                </div>
+                <div class="form-group">
+                    <label for="asalSekolah">Asal Sekolah (TK/RA):</label>
+                    <input type="text" id="asalSekolah" name="Asal_Sekolah" placeholder="Nama (TK/RA)" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="alamatSekolah">Alamat Sekolah:</label>
+                    <input type="text" id="alamatSekolah" name="Alamat_Sekolah" placeholder="Alamat (TK/RA)" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tanggalIjazah">Tanggal Ijazah:</label>
+                    <input type="date" id="tanggalIjazah" name="Tanggal_Ijazah" placeholder="hh/bb/tttt" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="nomorIjazah">Nomor Ijazah:</label>
+                    <input type="text" id="nomorIjazah" name="Nomor_Ijazah" placeholder="Isi No Ijazah Jika Ada" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <!-- F. Kontak & Keterangan Lain -->
+                <div class="md:col-span-3">
+                    <h2 class="text-2xl font-semibold mb-4 mt-8 text-gray-700">F. Kontak & Keterangan Lain</h2>
+                </div>
+                <div class="form-group">
+                    <label for="noHpSiswa">No. HP Siswa:</label>
+                    <input type="text" id="noHpSiswa" name="No_HP_Siswa" placeholder="08**********" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="emailSiswa">Email Siswa:</label>
+                    <input type="text" id="emailSiswa" name="Email_Siswa" placeholder="contoh@gmail.com" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="golonganDarah">Golongan Darah:</label>
+                    <input type="text" id="golonganDarah" name="Golongan_Darah" placeholder="Isi Golongan Darah (A,B,O)" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="penyakitDiderita">Penyakit yang Pernah Diderita:</label>
+                    <input type="text" id="penyakitDiderita" name="Penyakit_Diderita" placeholder="Isi Jika Memang Perlu" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="jumlahSaudara">Jumlah Saudara:</label>
+                    <input type="text" id="jumlahSaudara" name="Jumlah_Saudara" placeholder="Berapa Bersaudara Semuanya" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="tinggiBadan">Tinggi Badan (cm):</label>
+                    <input type="text" id="tinggiBadan" name="Tinggi_Badan" placeholder="000" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="beratBadan">Berat Badan (kg):</label>
+                    <input type="text" id="beratBadan" name="Berat_Badan" placeholder="00" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="lingkarKepala">Lingkar Kepala:</label>
+                    <input type="text" id="lingkarKepala" name="Lingkar_Kepala" placeholder="00" class="focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="form-group">
+                    <label for="hobby">Hobby:</label>
+                    <select id="hobby" name="Hobby" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Pilih Hobby --</option>
+                        <option value="Membaca">Membaca</option>
+                        <option value="Olahraga">Olahraga</option>
+                        <option value="Musik">Musik</option>
+                        <option value="Seni">Seni</option>
+                        <option value="Memasak">Memasak</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Traveling">Traveling</option>
+                        <option value="Menulis">Menulis</option>
+                        <option value="Coding">Coding</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="citaCita">Cita-cita:</label>
+                    <select id="citaCita" name="Cita_Cita" class="focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Pilih Cita-cita --</option>
+                        <option value="Tidak bekerja">Tidak bekerja</option>
+                        <option value="Nelayan">Nelayan</option>
+                        <option value="Petani">Petani</option>
+                        <option value="Peternak">Peternak</option>
+                        <option value="PNS/TNI/POLRI">PNS/TNI/POLRI</option>
+                        <option value="Karyawan Swasta">Karyawan Swasta</option>
+                        <option value="Pedagang Kecil">Pedagang Kecil</option>
+                        <option value="Pedagang Besar">Pedagang Besar</option>
+                        <option value="Wiraswasta">Wiraswasta</option>
+                        <option value="Wirausaha">Wirausaha</option>
+                        <option value="Buruh">Buruh</option>
+                        <option value="Pensiunan">Pensiunan</option>
+                        <option value="Tenaga Kerja Indonesia">Tenaga Kerja Indonesia</option>
+                        <option value="Tidak dapat diterapkan">Tidak dapat diterapkan</option>
+                        <option value="Sudah Meninggal">Sudah Meninggal</option>
+                        <option value="Dokter">Dokter</option>
+                        <option value="Politikus">Politikus</option>
+                        <option value="Seniman/Artis">Seniman/Artis</option>
+                        <option value="Ilmuwan">Ilmuwan</option>
+                        <option value="Guru/Dosen">Guru/Dosen</option>
+                        <option value="Pilot">Pilot</option>
+                        <option value="Pengacara">Pengacara</option>
+                        <option value="Notaris">Notaris</option>
+                        <option value="Arsitek">Arsitek</option>
+                        <option value="Tentara">Tentara</option>
+                        <option value="Polisi">Polisi</option>
+                        <option value="Presiden">Presiden</option>
+                        <option value="Wakil Presiden">Wakil Presiden</option>
+                        <option value="Menteri">Menteri</option>
+                        <option value="Gubernur">Gubernur</option>
+                        <option value="Bupati">Bupati</option>
+                        <option value="Walikota">Walikota</option>
+                        <option value="DPR">DPR</option>
+                        <option value="DPRD">DPRD</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+
+
+                <div class="md:col-span-3 flex justify-end mt-4">
+                    <button type="button" id="cancelEditBtn" class="cancel-button hidden">Batalkan Edit</button>
+                    <button type="submit" id="submitButton" class="submit-button">Tambah Siswa</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Area untuk tabel akan dirender oleh plugin listapplets -->
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Daftar Siswa</h2>
+        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+            <input type="text" id="globalSearchInput" placeholder="Cari di semua kolom..." class="flex-grow">
+            <input type="file" id="xlsxFileInput" accept=".xlsx, .xls" class="hidden">
+            <button id="importXlsxBtn" class="import-button">Import Data XLSX</button>
+            <button id="exportXlsxBtn" class="export-button">Export Data XLSX</button>
+            <button id="downloadTemplateBtn" class="template-button">Download Template XLSX</button>
+            <button id="deleteAllDataBtn" class="delete-all-button">Hapus Semua Data</button>
+        </div>
+        <div id="table-container-placeholder">
+            <!-- Tabel akan dimasukkan di sini oleh JavaScript -->
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="modalTitle">Konfirmasi Hapus</h3>
+            <p id="modalMessage">Apakah Anda yakin ingin menghapus data siswa yang dipilih?</p>
+            <div class="modal-buttons">
+                <button id="confirmDeleteBtn" class="modal-button confirm">Hapus</button>
+                <button id="cancelDeleteBtn" class="modal-button cancel">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data awal siswa (akan dimuat dari localStorage jika ada)
+        let allStudentData = [];
+
+        // Global variable to store the ID of the student being edited
+        let editingStudentId = null;
+
+        // Key for localStorage
+        const LOCAL_STORAGE_KEY = 'studentData';
+
+        // Helper function to load data from localStorage
+        function loadDataFromLocalStorage() {
+            const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedData) {
+                try {
+                    return JSON.parse(storedData);
+                } catch (e) {
+                    console.error("Error parsing data from localStorage:", e);
+                    return [];
+                }
+            }
+            // If no data in localStorage, return an empty array
+            return [];
+        }
+
+        // Helper function to save data to localStorage
+        function saveDataToLocalStorage(data) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // Load data when the script starts
+        allStudentData = loadDataFromLocalStorage();
+
+
+        // Helper function to format date for input type="date" (YYYY-MM-DD)
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            // Assuming dateString is in DD/MM/YYYY format or YYYY-MM-DD
+            if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                const parts = dateString.split('/');
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            } else if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateString; // Already in correct format
+            }
+            // Try to parse as Date object if format is unknown
+            try {
+                const date = new Date(dateString);
+                if (!isNaN(date.getTime())) { // Check if date is valid
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+            } catch (e) {
+                console.error("Error parsing date for input:", dateString, e);
+            }
+            return dateString; // Return original if parsing fails
+        }
+
+        // Helper function to format date from input (YYYY-MM-DD) to display (DD/MM/YYYY)
+        function formatDateForDisplay(dateString) {
+            if (!dateString) return '';
+            // Assuming YYYY-MM-DD from input type="date"
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const parts = dateString.split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            // If it's already in DD/MM/YYYY or other format, return as is
+            return dateString;
+        }
+
+
+        /*
+         * Starting Outline for Datatable plugin for use within siebel using Open UI
+         *
+         */
+
+        (function () {
+            // Define listapplets as a constructor function
+            this.listapplets = function () {
+                //Reference to any major global elements
+                this.tableInstance = null;
+                this.searchable = null;
+                this.headings = null; // This will hold all original keys
+                this.tableContainer = null;
+                this.tableData = null;
+                // Removed this.selectAll
+
+                // Options available to plugin users
+                let defaults = {
+                    className: "c-list-applet",
+                    id: null,
+                    maxWidth: null,
+                    inlineSearch: false,
+                    expandable: true,
+                    selectable: false, // Set to false
+                    data: null, // This will be the full dataset (allStudentData)
+                    filteredData: null, // New: to hold filtered data for search
+                    rowsPerPage: 5, // New: default rows per page
+                    currentPage: 1, // New: current page number
+                    resizable: false,
+                    sortable: true,
+                    filter: false, // Set to false
+                };
+
+                // grab any parameters passed in and extend our default options
+                if (arguments[0] && typeof arguments[0] === "object") {
+                    this.options = extendDefaults(defaults, arguments[0]);
+                }
+
+                if (this.options.data) {
+                    this.init(); // Call init without data, as it uses this.options.data
+                    if (this.options.sortable) this.sorting();
+                } else {
+                    console.error("The data was not passed in, the component cannot be created");
+                    return;
+                }
+            };
+
+            // Publicly available methods
+            this.listapplets.prototype.init = function () {
+                formatData.call(this);
+                renderList.call(this);
+            };
+
+            // Reload method to update the table with new data
+            this.listapplets.prototype.reload = function() {
+                // Remove the existing container if it exists
+                const existingContainer = document.querySelector('.c-listapplet-container');
+                if (existingContainer) {
+                    existingContainer.remove();
+                }
+                // Re-initialize the table (will use this.options.data or this.options.filteredData)
+                this.init();
+                if (this.options.sortable) this.sorting();
+            };
+
+            this.listapplets.prototype.filter = (colName, searchValue) => {};
+            this.listapplets.prototype.resetFilter = () => {};
+            this.listapplets.prototype.onRowSelect = () => {}; // No longer needed but kept as a placeholder
+            this.listapplets.prototype.destory = () => {};
+
+
+            this.listapplets.prototype.sorting = function () {
+                let headings = this.headings.childNodes; // This now includes 'id' and 'Aksi'
+
+                // Define the display order for sorting purposes to map back to the original data keys
+                const displayOrderKeys = [
+                    'id', 'Nama_Lengkap', 'Jenis_Kelamin', 'NISN', 'Kebangsaan', 'NIK_Siswa', 'No_KK',
+                    'Tempat_Lahir', 'Tanggal_Lahir', 'No_Akta_Lahir', 'Kebutuhan_Khusus',
+                    'Agama_Kepercayaan', 'Alamat_Lengkap', 'RT', 'RW', 'Dusun_Lingkungan',
+                    'Desa_Kelurahan', 'Kode_Pos', 'Tempat_Tinggal', 'Moda_Transportasi', 'Anak_Ke',
+                    'Nama_Ayah', 'NIK_Ayah', 'Tahun_Lahir_Ayah', 'Pendidikan_Ayah', 'Pekerjaan_Ayah',
+                    'Penghasilan_per_Bulan_Ayah', 'Berkebutuhan_Khusus_Ayah', 'No_HP_Ayah',
+                    'Nama_Ibu', 'NIK_Ibu', 'Tahun_Lahir_Ibu', 'Pendidikan_Ibu', 'Pekerjaan_Ibu',
+                    'Penghasilan_per_Bulan_Ibu', 'Berkebutuhan_Khusus_Ibu', 'No_HP_Ibu',
+                    'Nama_Wali', 'Hubungan_Wali', 'Pendidikan_Wali', 'Pekerjaan_Wali',
+                    'Penghasilan_per_Bulan_Wali', 'Berkebutuhan_Khusus_Wali', 'No_HP_Wali',
+                    'Asal_Sekolah', 'Alamat_Sekolah', 'Tanggal_Ijazah', 'Nomor_Ijazah',
+                    'No_HP_Siswa', 'Email_Siswa', 'Golongan_Darah', 'Penyakit_Diderita',
+                    'Jumlah_Saudara', 'Tinggi_Badan', 'Berat_Badan', 'Lingkar_Kepala', 'Hobby', 'Cita_Cita'
+                ];
+
+                for (var i = 0, len = headings.length; i < len; i++) {
+                    const th = headings[i]; // Current table header
+                    const columnKey = th.getAttribute('data-key'); // Get the data-key attribute
+
+                    // Only add sort indicators to data columns, not the 'Aksi' column
+                    if (columnKey && displayOrderKeys.includes(columnKey)) {
+                        let sortIndicator = th.querySelector('.' + this.options.className + '__sort-indicator');
+
+                        if (!sortIndicator) {
+                            sortIndicator = document.createElement('span');
+                            sortIndicator.className = this.options.className + '__sort-indicator';
+                            sortIndicator.innerHTML = `
+                                <svg class="asc-icon w-3 h-3 text-blue-700" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                                <svg class="desc-icon hidden w-3 h-3 text-blue-700" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            `;
+                            sortIndicator.setAttribute('data-sort-order', 'none'); // Initial state: no sort applied
+                            th.appendChild(sortIndicator);
+
+                            // Set cursor style for the entire th
+                            th.style.cursor = 'pointer';
+                        }
+
+                        // Remove previous event listener to prevent duplicates
+                        if (th.sortHandler) {
+                            th.removeEventListener('click', th.sortHandler);
+                        }
+
+                        // Add new event listener
+                        th.sortHandler = (function(columnKey, instance) {
+                            return function (e) {
+                                // Prevent sorting when clicking the sort indicator itself
+                                if (e.target.closest('.' + instance.options.className + '__sort-indicator')) {
+                                    return;
+                                }
+
+                                const currentSortIndicator = this.querySelector('.' + instance.options.className + '__sort-indicator');
+                                if (!currentSortIndicator) return;
+
+                                let currentOrder = currentSortIndicator.getAttribute('data-sort-order');
+                                let newOrder;
+
+                                // Logic to cycle through 'none', 'asc', 'desc'
+                                if (currentOrder === 'none' || currentOrder === 'desc') {
+                                    newOrder = 'asc';
+                                } else { // currentOrder === 'asc'
+                                    newOrder = 'desc';
+                                }
+
+                                // Reset all other sort indicators
+                                Array.from(headings).forEach(otherTh => {
+                                    const otherIndicator = otherTh.querySelector('.' + instance.options.className + '__sort-indicator');
+                                    if (otherIndicator && otherIndicator !== currentSortIndicator) {
+                                        otherIndicator.setAttribute('data-sort-order', 'none');
+                                        otherIndicator.querySelector('.asc-icon').classList.remove('hidden');
+                                        otherIndicator.querySelector('.desc-icon').classList.add('hidden');
+                                    }
+                                });
+
+                                // Update current sort indicator
+                                currentSortIndicator.setAttribute('data-sort-order', newOrder);
+                                if (newOrder === 'asc') {
+                                    currentSortIndicator.querySelector('.asc-icon').classList.remove('hidden');
+                                    currentSortIndicator.querySelector('.desc-icon').classList.add('hidden');
+                                } else {
+                                    currentSortIndicator.querySelector('.asc-icon').classList.add('hidden');
+                                    currentSortIndicator.querySelector('.desc-icon').classList.remove('hidden');
+                                }
+
+                                const dataToSort = instance.options.filteredData ? [...instance.options.filteredData] : [...instance.options.data]; // Create a copy
+
+                                dataToSort.sort((a, b) => {
+                                    const valA = String(a[columnKey] || '').toLowerCase();
+                                    const valB = String(b[columnKey] || '').toLowerCase();
+
+                                    if (valA < valB) return newOrder === 'asc' ? -1 : 1;
+                                    if (valA > valB) return newOrder === 'asc' ? 1 : -1;
+                                    return 0;
+                                });
+
+                                if (instance.options.filteredData) {
+                                    instance.options.filteredData = dataToSort;
+                                } else {
+                                    instance.options.data = dataToSort;
+                                }
+
+                                instance.options.currentPage = 1;
+                                instance.reload();
+                            };
+                        })(columnKey, this); // Pass the actual column key for sorting
+                        th.addEventListener('click', th.sortHandler);
+                    }
+                }
+            };
+
+
+            // private methods (defined as global functions but called with .call(this))
+            formatData = function () {
+                // This will still get all keys, but renderList will control the display order
+                if (typeof this.options.data === 'object' && this.options.data.length > 0) {
+                    this.options.headings = Object.keys(this.options.data[0]);
+                } else {
+                    this.options.headings = []; // Handle empty data case
+                }
+            };
+
+
+            function renderList() {
+                // Clear existing table content from the placeholder
+                const placeholder = document.getElementById('table-container-placeholder');
+                if (placeholder) {
+                    placeholder.innerHTML = '';
+                }
+
+                let table = document.createElement('table');
+                table.className = this.options.className + '__table';
+                this.tableInstance = table;
+
+                const tBody = document.createElement('tbody');
+
+                const headingRow = document.createElement('tr');
+                headingRow.className = this.options.className + '__table-row';
+
+                this.headings = headingRow;
+
+                // Define the desired display order of columns
+                const displayOrder = [
+                    'id', 'Nama_Lengkap', 'Jenis_Kelamin', 'NISN', 'Kebangsaan', 'NIK_Siswa', 'No_KK',
+                    'Tempat_Lahir', 'Tanggal_Lahir', 'No_Akta_Lahir', 'Kebutuhan_Khusus',
+                    'Agama_Kepercayaan', 'Alamat_Lengkap', 'RT', 'RW', 'Dusun_Lingkungan',
+                    'Desa_Kelurahan', 'Kode_Pos', 'Tempat_Tinggal', 'Moda_Transportasi', 'Anak_Ke',
+                    'Nama_Ayah', 'NIK_Ayah', 'Tahun_Lahir_Ayah', 'Pendidikan_Ayah', 'Pekerjaan_Ayah',
+                    'Penghasilan_per_Bulan_Ayah', 'Berkebutuhan_Khusus_Ayah', 'No_HP_Ayah',
+                    'Nama_Ibu', 'NIK_Ibu', 'Tahun_Lahir_Ibu', 'Pendidikan_Ibu', 'Pekerjaan_Ibu',
+                    'Penghasilan_per_Bulan_Ibu', 'Berkebutuhan_Khusus_Ibu', 'No_HP_Ibu',
+                    'Nama_Wali', 'Hubungan_Wali', 'Pendidikan_Wali', 'Pekerjaan_Wali',
+                    'Penghasilan_per_Bulan_Wali', 'Berkebutuhan_Khusus_Wali', 'No_HP_Wali',
+                    'Asal_Sekolah', 'Alamat_Sekolah', 'Tanggal_Ijazah', 'Nomor_Ijazah',
+                    'No_HP_Siswa', 'Email_Siswa', 'Golongan_Darah', 'Penyakit_Diderita',
+                    'Jumlah_Saudara', 'Tinggi_Badan', 'Berat_Badan', 'Lingkar_Kepala', 'Hobby', 'Cita_Cita'
+                ];
+
+                // Create headers based on displayOrder
+                for (let i = 0; i < displayOrder.length; i++) {
+                    const key = displayOrder[i];
+                    const th = document.createElement('th');
+                    th.className = this.options.className + '__table-heading';
+                    th.textContent = key.replace(/_/g, ' ').replace(/per Bulan/g, '/Bulan'); // Replace underscores and format "per Bulan"
+                    th.setAttribute('title', key);
+                    th.setAttribute('data-key', key); // Add data-key for sorting logic
+                    headingRow.appendChild(th);
+                }
+
+                // Add "Aksi" (Actions) header
+                const actionsTh = document.createElement('th');
+                actionsTh.className = this.options.className + '__table-heading';
+                actionsTh.textContent = 'Aksi';
+                headingRow.appendChild(actionsTh);
+
+
+                const tHead = document.createElement('thead');
+                tHead.append(headingRow);
+                table.append(tHead);
+
+                // Determine which data to render (filtered or all)
+                const dataToRender = this.options.filteredData || this.options.data;
+
+                // Calculate pagination indices
+                const startIndex = (this.options.currentPage - 1) * (this.options.rowsPerPage === 'all' ? dataToRender.length : this.options.rowsPerPage);
+                const endIndex = this.options.rowsPerPage === 'all' ? dataToRender.length : startIndex + this.options.rowsPerPage;
+                const paginatedData = dataToRender.slice(startIndex, endIndex);
+
+
+                for (let i = 0, len = paginatedData.length; i < len; i++) {
+
+                    let tdRow = document.createElement('tr');
+                    tdRow.className = this.options.className + "__table-data-row";
+                    tdRow.setAttribute('data-id', paginatedData[i].id); // Use data-id for unique identification
+
+                    // Create cells based on displayOrder
+                    for (let x = 0; x < displayOrder.length; x++) {
+                        const key = displayOrder[x];
+                        const td = document.createElement('td');
+                        td.className = this.options.className + '__table-details';
+                        // Ensure date formats are consistent if needed, otherwise display as is
+                        let cellContent = paginatedData[i][key];
+                        if (key.includes('Tanggal_Lahir') || key.includes('Tanggal_Ijazah')) { // Check for specific date keys
+                            // Check if the date string is in YYYY-MM-DD format (from input type="date")
+                            // or DD/MM/YYYY (from initial data)
+                            if (cellContent && cellContent.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                const [year, month, day] = cellContent.split('-');
+                                cellContent = `${day}/${month}/${year}`;
+                            } else if (cellContent instanceof Date) {
+                                cellContent = cellContent.toLocaleDateString('id-ID'); // Format date for display
+                            }
+                        }
+                        td.textContent = cellContent;
+                        td.setAttribute('title', cellContent);
+
+                        tdRow.appendChild(td);
+                    }
+
+                    // Add "Aksi" (Actions) cell with Edit and Delete buttons
+                    const actionsTd = document.createElement('td');
+                    actionsTd.className = this.options.className + '__table-actions';
+
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'edit-button';
+                    editBtn.textContent = 'Edit';
+                    editBtn.setAttribute('data-id', paginatedData[i].id);
+                    editBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent row click if any
+                        test.editRow(e.target.getAttribute('data-id'));
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-button';
+                    deleteBtn.textContent = 'Hapus';
+                    deleteBtn.setAttribute('data-id', paginatedData[i].id);
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent row click if any
+                        test.deleteRow(e.target.getAttribute('data-id'));
+                    });
+
+                    actionsTd.append(editBtn, deleteBtn);
+                    tdRow.appendChild(actionsTd);
+
+                    tBody.append(tdRow);
+                }
+                this.tableData = tBody.childNodes; // This now refers to the actual DOM rows
+                table.append(tBody);
+
+                const container = document.createElement('div');
+                container.className = 'c-listapplet-container';
+                const tableContainer = document.createElement('div');
+                // Added overflow-x-auto to the table container
+                tableContainer.className = 'c-table-container overflow-x-auto';
+                this.tableContainer = tableContainer;
+                tableContainer.append(table);
+                container.append(tableContainer);
+
+                // Append to the specific placeholder div
+                if (placeholder) {
+                    placeholder.append(container);
+                } else {
+                    document.querySelector('body').append(container);
+                }
+
+                renderToolbar.call(this); // Render toolbar before pagination for correct order
+                renderPagination.call(this, dataToRender.length, Math.ceil(dataToRender.length / (this.options.rowsPerPage === 'all' ? dataToRender.length : this.options.rowsPerPage)));
+            }
+
+            // render the pagination
+            function renderPagination(totalItems, totalPages) {
+                // Remove existing pagination to prevent duplicates on reload
+                const existingPagination = document.querySelector('.' + this.options.className + '__pagination');
+                if (existingPagination) {
+                    existingPagination.remove();
+                }
+
+                const pagination = document.createElement('div');
+                // Changed to flex-col on small screens, flex-row on medium and up
+                pagination.className = this.options.className + '__pagination flex flex-col md:flex-row justify-between items-center mt-4 gap-2';
+
+                // Rows per page dropdown
+                const pageSizeControl = document.createElement('div');
+                pageSizeControl.className = 'flex items-center gap-2';
+                const pageSizeLabel = document.createElement('label');
+                pageSizeLabel.textContent = 'Tampilkan:';
+                pageSizeLabel.className = 'text-sm text-gray-600';
+                const pageSizeSelect = document.createElement('select');
+                pageSizeSelect.className = 'p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500';
+                pageSizeSelect.innerHTML = `
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="all">Semua</option>
+                `;
+                pageSizeSelect.value = this.options.rowsPerPage; // Set current selected value
+
+                pageSizeSelect.addEventListener('change', (e) => {
+                    this.options.rowsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                    this.options.currentPage = 1; // Reset to first page
+                    this.reload(); // Reload with new page size
+                });
+                pageSizeControl.append(pageSizeLabel, pageSizeSelect);
+                pagination.append(pageSizeControl);
+
+                // Pagination info and buttons
+                const paginationControls = document.createElement('div');
+                // Changed to flex-col on small screens, flex-row on medium and up
+                paginationControls.className = 'flex flex-col md:flex-row items-center gap-2 md:gap-4';
+
+                const count = document.createElement('span');
+                count.className = this.options.className + '__records text-sm text-gray-600';
+                const startItem = (this.options.currentPage - 1) * (this.options.rowsPerPage === 'all' ? totalItems : this.options.rowsPerPage) + 1;
+                const endItem = this.options.rowsPerPage === 'all' ? totalItems : Math.min(this.options.currentPage * this.options.rowsPerPage, totalItems);
+                if (totalItems === 0) {
+                    count.textContent = `Tidak ada data`;
+                } else {
+                    count.textContent = `Menampilkan ${startItem} sampai ${endItem} dari ${totalItems} entri`;
+                }
+                paginationControls.append(count);
+
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'flex gap-2'; // Group buttons together
+
+                const prevButton = document.createElement('button');
+                prevButton.className = 'px-3 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed';
+                prevButton.textContent = 'Sebelumnya';
+                prevButton.disabled = this.options.currentPage <= 1;
+                prevButton.addEventListener('click', () => {
+                    if (this.options.currentPage > 1) {
+                        this.options.currentPage--;
+                        this.reload();
+                    }
+                });
+                buttonGroup.append(prevButton);
+
+                const nextButton = document.createElement('button');
+                nextButton.className = 'px-3 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed';
+                nextButton.textContent = 'Berikutnya';
+                nextButton.disabled = this.options.currentPage >= totalPages || totalPages === 0;
+                nextButton.addEventListener('click', () => {
+                    if (this.options.currentPage < totalPages) {
+                        this.options.currentPage++;
+                        this.reload();
+                    }
+                });
+                buttonGroup.append(nextButton);
+
+                paginationControls.append(buttonGroup); // Append the button group
+                pagination.append(paginationControls);
+                this.tableContainer.parentNode.insertBefore(pagination, this.tableContainer.nextSibling);
+            }
+
+            // render the action toolbar
+            function renderToolbar() {
+                // Removed the toolbar as edit/delete buttons are now per row.
+                // If you need a global toolbar for other actions, you can re-add it here.
+            }
+
+
+            // extends default options providing they match available defaults
+            extendDefaults = (currentOptions, newOptions) => {
+
+                for (var option in newOptions) {
+                    if (newOptions.hasOwnProperty(option)) {
+                        currentOptions[option] = newOptions[option];
+                    }
+                }
+                return currentOptions;
+            };
+
+            // --- New methods for Edit and Delete functionality (now per row) ---
+
+            this.listapplets.prototype.editRow = function(studentIdToEdit) {
+                console.log('Attempting to edit student with ID:', studentIdToEdit);
+                const studentToEdit = allStudentData.find(s => String(s.id) === String(studentIdToEdit)); // Ensure string comparison
+                console.log('Found student for editing:', studentToEdit);
+
+                if (studentToEdit) {
+                    // Populate the form fields for Data Siswa
+                    document.getElementById('namaLengkap').value = studentToEdit.Nama_Lengkap || '';
+                    document.getElementById('jenisKelamin').value = studentToEdit.Jenis_Kelamin || '';
+                    document.getElementById('nisn').value = studentToEdit.NISN || '';
+                    document.getElementById('kebangsaan').value = studentToEdit.Kebangsaan || '';
+                    document.getElementById('nikSiswa').value = studentToEdit.NIK_Siswa || '';
+                    document.getElementById('noKk').value = studentToEdit.No_KK || '';
+                    document.getElementById('tempatLahir').value = studentToEdit.Tempat_Lahir || '';
+                    document.getElementById('tanggalLahir').value = formatDateForInput(studentToEdit.Tanggal_Lahir);
+                    document.getElementById('noAktaLahir').value = studentToEdit.No_Akta_Lahir || '';
+                    document.getElementById('kebutuhanKhusus').value = studentToEdit.Kebutuhan_Khusus || '';
+                    document.getElementById('agamaKepercayaan').value = studentToEdit.Agama_Kepercayaan || '';
+                    document.getElementById('alamatLengkap').value = studentToEdit.Alamat_Lengkap || '';
+                    document.getElementById('rt').value = studentToEdit.RT || '';
+                    document.getElementById('rw').value = studentToEdit.RW || '';
+                    document.getElementById('dusunLingkungan').value = studentToEdit.Dusun_Lingkungan || '';
+                    document.getElementById('desaKelurahan').value = studentToEdit.Desa_Kelurahan || '';
+                    document.getElementById('kodePos').value = studentToEdit.Kode_Pos || '';
+                    document.getElementById('tempatTinggal').value = studentToEdit.Tempat_Tinggal || '';
+                    document.getElementById('modaTransportasi').value = studentToEdit.Moda_Transportasi || '';
+                    document.getElementById('anakKe').value = studentToEdit.Anak_Ke || '';
+
+                    // Populate the form fields for Data Ayah Kandung
+                    document.getElementById('namaAyah').value = studentToEdit.Nama_Ayah || '';
+                    document.getElementById('nikAyah').value = studentToEdit.NIK_Ayah || '';
+                    document.getElementById('tahunLahirAyah').value = studentToEdit.Tahun_Lahir_Ayah || '';
+                    document.getElementById('pendidikanAyah').value = studentToEdit.Pendidikan_Ayah || '';
+                    document.getElementById('pekerjaanAyah').value = studentToEdit.Pekerjaan_Ayah || '';
+                    document.getElementById('penghasilanAyah').value = studentToEdit.Penghasilan_per_Bulan_Ayah || '';
+                    document.getElementById('kebutuhanKhususAyah').value = studentToEdit.Berkebutuhan_Khusus_Ayah || '';
+                    document.getElementById('noHpAyah').value = studentToEdit.No_HP_Ayah || '';
+
+                    // Populate the form fields for Data Ibu Kandung
+                    document.getElementById('namaIbu').value = studentToEdit.Nama_Ibu || '';
+                    document.getElementById('nikIbu').value = studentToEdit.NIK_Ibu || '';
+                    document.getElementById('tahunLahirIbu').value = studentToEdit.Tahun_Lahir_Ibu || '';
+                    document.getElementById('pendidikanIbu').value = studentToEdit.Pendidikan_Ibu || '';
+                    document.getElementById('pekerjaanIbu').value = studentToEdit.Pekerjaan_Ibu || '';
+                    document.getElementById('penghasilanIbu').value = studentToEdit.Penghasilan_per_Bulan_Ibu || '';
+                    document.getElementById('kebutuhanKhususIbu').value = studentToEdit.Berkebutuhan_Khusus_Ibu || '';
+                    document.getElementById('noHpIbu').value = studentToEdit.No_HP_Ibu || '';
+
+                    // Populate the form fields for Data Wali Kandung
+                    document.getElementById('namaWali').value = studentToEdit.Nama_Wali || '';
+                    document.getElementById('hubunganWali').value = studentToEdit.Hubungan_Wali || '';
+                    document.getElementById('pendidikanWali').value = studentToEdit.Pendidikan_Wali || '';
+                    document.getElementById('pekerjaanWali').value = studentToEdit.Pekerjaan_Wali || '';
+                    document.getElementById('penghasilanWali').value = studentToEdit.Penghasilan_per_Bulan_Wali || '';
+                    document.getElementById('kebutuhanKhususWali').value = studentToEdit.Berkebutuhan_Khusus_Wali || '';
+                    document.getElementById('noHpWali').value = studentToEdit.No_HP_Wali || '';
+
+                    // Populate the form fields for Pendidikan Sebelumnya
+                    document.getElementById('asalSekolah').value = studentToEdit.Asal_Sekolah || '';
+                    document.getElementById('alamatSekolah').value = studentToEdit.Alamat_Sekolah || '';
+                    document.getElementById('tanggalIjazah').value = formatDateForInput(studentToEdit.Tanggal_Ijazah);
+                    document.getElementById('nomorIjazah').value = studentToEdit.Nomor_Ijazah || '';
+
+                    // Populate the form fields for Kontak & Keterangan Lain
+                    document.getElementById('noHpSiswa').value = studentToEdit.No_HP_Siswa || '';
+                    document.getElementById('emailSiswa').value = studentToEdit.Email_Siswa || '';
+                    document.getElementById('golonganDarah').value = studentToEdit.Golongan_Darah || '';
+                    document.getElementById('penyakitDiderita').value = studentToEdit.Penyakit_Diderita || '';
+                    document.getElementById('jumlahSaudara').value = studentToEdit.Jumlah_Saudara || '';
+                    document.getElementById('tinggiBadan').value = studentToEdit.Tinggi_Badan || '';
+                    document.getElementById('beratBadan').value = studentToEdit.Berat_Badan || '';
+                    document.getElementById('lingkarKepala').value = studentToEdit.Lingkar_Kepala || '';
+                    document.getElementById('hobby').value = studentToEdit.Hobby || '';
+                    document.getElementById('citaCita').value = studentToEdit.Cita_Cita || '';
+
+
+                    // Change submit button text and show cancel button
+                    document.getElementById('submitButton').textContent = 'Perbarui Siswa';
+                    document.getElementById('submitButton').classList.add('update-mode'); // Add class for styling if needed
+                    document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+                    editingStudentId = studentIdToEdit; // Store the ID of the student being edited
+                } else {
+                    console.error("Student to edit not found with ID:", studentIdToEdit);
+                    showModal('Error', 'Data siswa tidak ditemukan untuk diedit.');
+                }
+            };
+
+            this.listapplets.prototype.deleteRow = function(studentIdToDelete) {
+                showModal('Konfirmasi Hapus', `Apakah Anda yakin ingin menghapus data siswa ini?`, () => {
+                    console.log('ID to delete:', studentIdToDelete);
+                    console.log('allStudentData before filter:', JSON.parse(JSON.stringify(allStudentData))); // Deep copy for logging
+
+                    const initialDataLength = allStudentData.length;
+                    allStudentData = allStudentData.filter(student => String(student.id) !== String(studentIdToDelete));
+                    console.log('allStudentData after filter:', JSON.parse(JSON.stringify(allStudentData))); // Deep copy for logging
+                    console.log('Number of items deleted:', initialDataLength - allStudentData.length);
+
+                    this.options.data = allStudentData; // Explicitly update the instance's data reference
+                    this.options.filteredData = null; // Clear any active filter after deletion
+
+                    saveDataToLocalStorage(allStudentData); // Save data to localStorage after deletion
+                    console.log('Calling reload after deletion and save.');
+                    this.reload(); // Reload the table with updated data
+                    showModal('Berhasil', 'Data siswa berhasil dihapus.');
+                }, true); // Pass true to indicate it's a confirmation
+            };
+        })();
+
+        // --- Global functions for form and modal handling ---
+
+        const studentForm = document.getElementById('studentForm');
+        const submitButton = document.getElementById('submitButton');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const confirmationModal = document.getElementById('confirmationModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const xlsxFileInput = document.getElementById('xlsxFileInput');
+        const importXlsxBtn = document.getElementById('importXlsxBtn');
+        const exportXlsxBtn = document.getElementById('exportXlsxBtn'); // New button reference
+        const downloadTemplateBtn = document.getElementById('downloadTemplateBtn'); // New button reference
+        const deleteAllDataBtn = document.getElementById('deleteAllDataBtn'); // New button reference
+        const globalSearchInput = document.getElementById('globalSearchInput');
+
+
+        let currentModalCallback = null; // To store the callback for the confirmation modal
+
+        // Function to show the custom modal
+        function showModal(title, message, confirmCallback = null, isConfirmation = false) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            confirmationModal.classList.remove('hidden');
+
+            if (isConfirmation) {
+                confirmDeleteBtn.classList.remove('hidden');
+                cancelDeleteBtn.classList.remove('hidden');
+                confirmDeleteBtn.textContent = 'Hapus'; // Ensure button text is "Hapus" for confirmation
+                currentModalCallback = confirmCallback;
+            } else {
+                confirmDeleteBtn.classList.add('hidden'); // Hide confirm button for simple messages
+                cancelDeleteBtn.classList.remove('hidden'); // Keep cancel button as a close button
+                cancelDeleteBtn.textContent = 'OK'; // Change cancel button to OK for simple messages
+                currentModalCallback = null; // No action needed on "OK" for simple messages
+            }
+        }
+
+        // Function to hide the custom modal
+        function hideModal() {
+            confirmationModal.classList.add('hidden');
+            currentModalCallback = null;
+            cancelDeleteBtn.textContent = 'Batal'; // Reset button text when hiding
+        }
+
+        // Event listener for modal confirm button
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (currentModalCallback) {
+                currentModalCallback();
+            }
+            hideModal();
+        });
+
+        // Event listener for modal cancel button
+        cancelDeleteBtn.addEventListener('click', () => {
+            hideModal();
+        });
+
+
+        // Tangani pengiriman formulir
+        studentForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Mencegah pengiriman formulir default
+
+            const form = event.target;
+            const formData = {
+                Nama_Lengkap: form.Nama_Lengkap.value,
+                Jenis_Kelamin: form.Jenis_Kelamin.value,
+                NISN: form.NISN.value,
+                Kebangsaan: form.Kebangsaan.value,
+                NIK_Siswa: form.NIK_Siswa.value,
+                No_KK: form.No_KK.value,
+                Tempat_Lahir: form.Tempat_Lahir.value,
+                Tanggal_Lahir: formatDateForDisplay(form.Tanggal_Lahir.value), // Format date for display in table
+                No_Akta_Lahir: form.No_Akta_Lahir.value,
+                Kebutuhan_Khusus: form.Kebutuhan_Khusus.value,
+                Agama_Kepercayaan: form.Agama_Kepercayaan.value,
+                Alamat_Lengkap: form.Alamat_Lengkap.value,
+                RT: form.RT.value,
+                RW: form.RW.value,
+                Dusun_Lingkungan: form.Dusun_Lingkungan.value,
+                Desa_Kelurahan: form.Desa_Kelurahan.value,
+                Kode_Pos: form.Kode_Pos.value,
+                Tempat_Tinggal: form.Tempat_Tinggal.value,
+                Moda_Transportasi: form.Moda_Transportasi.value,
+                Anak_Ke: form.Anak_Ke.value,
+                // Data Ayah Kandung
+                Nama_Ayah: form.Nama_Ayah.value,
+                NIK_Ayah: form.NIK_Ayah.value,
+                Tahun_Lahir_Ayah: form.Tahun_Lahir_Ayah.value,
+                Pendidikan_Ayah: form.Pendidikan_Ayah.value,
+                Pekerjaan_Ayah: form.Pekerjaan_Ayah.value,
+                Penghasilan_per_Bulan_Ayah: form.Penghasilan_per_Bulan_Ayah.value,
+                Berkebutuhan_Khusus_Ayah: form.Berkebutuhan_Khusus_Ayah.value,
+                No_HP_Ayah: form.No_HP_Ayah.value,
+                // Data Ibu Kandung
+                Nama_Ibu: form.Nama_Ibu.value,
+                NIK_Ibu: form.NIK_Ibu.value,
+                Tahun_Lahir_Ibu: form.Tahun_Lahir_Ibu.value,
+                Pendidikan_Ibu: form.Pendidikan_Ibu.value,
+                Pekerjaan_Ibu: form.Pekerjaan_Ibu.value,
+                Penghasilan_per_Bulan_Ibu: form.Penghasilan_per_Bulan_Ibu.value,
+                Berkebutuhan_Khusus_Ibu: form.Berkebutuhan_Khusus_Ibu.value,
+                No_HP_Ibu: form.No_HP_Ibu.value,
+                // Data Wali Kandung
+                Nama_Wali: form.Nama_Wali.value,
+                Hubungan_Wali: form.Hubungan_Wali.value,
+                Pendidikan_Wali: form.Pendidikan_Wali.value,
+                Pekerjaan_Wali: form.Pekerjaan_Wali.value,
+                Penghasilan_per_Bulan_Wali: form.Penghasilan_per_Bulan_Wali.value,
+                Berkebutuhan_Khusus_Wali: form.Berkebutuhan_Khusus_Wali.value,
+                No_HP_Wali: form.No_HP_Wali.value,
+                // Pendidikan Sebelumnya
+                Asal_Sekolah: form.Asal_Sekolah.value,
+                Alamat_Sekolah: form.Alamat_Sekolah.value,
+                Tanggal_Ijazah: formatDateForDisplay(form.Tanggal_Ijazah.value),
+                Nomor_Ijazah: form.Nomor_Ijazah.value,
+                // Kontak & Keterangan Lain
+                No_HP_Siswa: form.No_HP_Siswa.value,
+                Email_Siswa: form.Email_Siswa.value,
+                Golongan_Darah: form.Golongan_Darah.value,
+                Penyakit_Diderita: form.Penyakit_Diderita.value,
+                Jumlah_Saudara: form.Jumlah_Saudara.value,
+                Tinggi_Badan: form.Tinggi_Badan.value,
+                Berat_Badan: form.Berat_Badan.value,
+                Lingkar_Kepala: form.Lingkar_Kepala.value,
+                Hobby: form.Hobby.value,
+                Cita_Cita: form.Cita_Cita.value
+            };
+
+            if (editingStudentId) {
+                // Update existing student
+                const index = allStudentData.findIndex(s => String(s.id) === String(editingStudentId)); // Ensure string comparison
+                if (index !== -1) {
+                    // Update properties of the existing object
+                    allStudentData[index] = { ...allStudentData[index], ...formData };
+                }
+                editingStudentId = null; // Reset editing state
+                submitButton.textContent = 'Tambah Siswa';
+                cancelEditBtn.classList.add('hidden');
+            } else {
+                // Add new student
+                // Generate ID baru: temukan ID maksimum yang ada dan tambahkan 1
+                const newId = (allStudentData.length > 0 ? Math.max(...allStudentData.map(s => parseInt(s.id))) + 1 : 1).toString();
+                allStudentData.push({ ...formData, id: newId }); // Add new student
+                showModal('Berhasil', 'Data siswa berhasil ditambahkan.');
+            }
+
+            test.reload(); // Muat ulang tabel dengan data terbaru
+            saveDataToLocalStorage(allStudentData); // Save data to localStorage after any modification
+            form.reset(); // Bersihkan formulir setelah pengiriman
+        });
+
+        // Event listener for Cancel Edit button
+        cancelEditBtn.addEventListener('click', () => {
+            studentForm.reset();
+            submitButton.textContent = 'Tambah Siswa';
+            cancelEditBtn.classList.add('hidden');
+            editingStudentId = null; // Clear editing state
+            test.reload(); // Reload to reflect deselection
+        });
+
+        // --- XLSX Import Logic ---
+        importXlsxBtn.addEventListener('click', () => {
+            xlsxFileInput.click(); // Trigger the hidden file input click
+        });
+
+        xlsxFileInput.addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        processWorkbook(workbook);
+                    } catch (error) {
+                        console.error("Error reading or parsing XLSX file:", error);
+                        showModal('Error Import', 'Terjadi kesalahan saat membaca file XLSX. Pastikan format file benar.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function processWorkbook(workbook) {
+            const sheetName = workbook.SheetNames[0]; // Get the first sheet
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonSheetData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonSheetData.length === 0) {
+                showModal('Import Gagal', 'File XLSX kosong atau tidak mengandung data.');
+                return;
+            }
+
+            let maxId = allStudentData.length > 0 ? Math.max(...allStudentData.map(s => parseInt(s.id) || 0)) : 0;
+
+            const importedStudents = jsonSheetData.map(row => {
+                maxId++;
+                // Map XLSX columns to your data structure
+                // Adjust these keys if your XLSX headers are different (e.g., from image)
+                return {
+                    Nama_Lengkap: row['Nama Lengkap'] || row['Nama_Lengkap'] || '',
+                    Jenis_Kelamin: row['Jenis Kelamin'] || row['Jenis_Kelamin'] || '',
+                    NISN: String(row['NISN'] || ''),
+                    Kebangsaan: row['Kebangsaan'] || '',
+                    NIK_Siswa: String(row['NIK Siswa'] || row['NIK_Siswa'] || ''),
+                    No_KK: String(row['No KK'] || row['No_KK'] || ''),
+                    Tempat_Lahir: row['Tempat Lahir'] || row['Tempat_Lahir'] || '',
+                    Tanggal_Lahir: formatDateForDisplay(XLSX.utils.format_cell(worksheet[XLSX.utils.encode_cell({r: jsonSheetData.indexOf(row) + 1, c: Object.keys(row).indexOf('Tanggal Lahir') || Object.keys(row).indexOf('Tanggal_Lahir')})], {raw: false}) || ''),
+                    No_Akta_Lahir: row['No Akta Lahir'] || row['No_Akta_Lahir'] || '',
+                    Kebutuhan_Khusus: row['Kebutuhan Khusus'] || row['Kebutuhan_Khusus'] || '',
+                    Agama_Kepercayaan: row['Agama & Kepercayaan'] || row['Agama_Kepercayaan'] || '',
+                    Alamat_Lengkap: row['Alamat Lengkap'] || row['Alamat_Lengkap'] || '',
+                    RT: String(row['RT'] || ''),
+                    RW: String(row['RW'] || ''),
+                    Dusun_Lingkungan: row['Dusun/Lingkungan'] || row['Dusun_Lingkungan'] || '',
+                    Desa_Kelurahan: row['Desa/Kelurahan'] || row['Desa_Kelurahan'] || '',
+                    Kode_Pos: String(row['Kode Pos'] || row['Kode_Pos'] || ''),
+                    Tempat_Tinggal: row['Tempat Tinggal'] || row['Tempat_Tinggal'] || '',
+                    Moda_Transportasi: row['Moda Transportasi'] || row['Moda_Transportasi'] || '',
+                    Anak_Ke: String(row['Anak ke-'] || row['Anak_Ke'] || ''),
+                    // Data Ayah Kandung
+                    Nama_Ayah: row['Nama Ayah'] || row['Nama_Ayah'] || '',
+                    NIK_Ayah: String(row['NIK Ayah'] || row['NIK_Ayah'] || ''),
+                    Tahun_Lahir_Ayah: String(row['Tahun Lahir Ayah'] || row['Tahun_Lahir_Ayah'] || ''),
+                    Pendidikan_Ayah: row['Pendidikan Ayah'] || row['Pendidikan_Ayah'] || '',
+                    Pekerjaan_Ayah: row['Pekerjaan Ayah'] || row['Pekerjaan_Ayah'] || '',
+                    Penghasilan_per_Bulan_Ayah: String(row['Penghasilan per Bulan'] || row['Penghasilan_per_Bulan_Ayah'] || ''),
+                    Berkebutuhan_Khusus_Ayah: row['Berkebutuhan Khusus Ayah'] || row['Berkebutuhan_Khusus_Ayah'] || '',
+                    No_HP_Ayah: String(row['No HP Ayah'] || row['No_HP_Ayah'] || ''),
+                    // Data Ibu Kandung
+                    Nama_Ibu: row['Nama Ibu'] || row['Nama_Ibu'] || '',
+                    NIK_Ibu: String(row['NIK Ibu'] || row['NIK_Ibu'] || ''),
+                    Tahun_Lahir_Ibu: String(row['Tahun Lahir Ibu'] || row['Tahun_Lahir_Ibu'] || ''),
+                    Pendidikan_Ibu: row['Pendidikan Ibu'] || row['Pendidikan_Ibu'] || '',
+                    Pekerjaan_Ibu: row['Pekerjaan Ibu'] || row['Pekerjaan_Ibu'] || '',
+                    Penghasilan_per_Bulan_Ibu: String(row['Penghasilan per Bulan Ibu'] || row['Penghasilan_per_Bulan_Ibu'] || ''),
+                    Berkebutuhan_Khusus_Ibu: row['Berkebutuhan Khusus Ibu'] || row['Berkebutuhan_Khusus_Ibu'] || '',
+                    No_HP_Ibu: String(row['No HP Ibu'] || row['No_HP_Ibu'] || ''),
+                    // Data Wali Kandung
+                    Nama_Wali: row['Nama Wali'] || row['Nama_Wali'] || '',
+                    Hubungan_Wali: row['Hubungan Wali'] || row['Hubungan_Wali'] || '',
+                    Pendidikan_Wali: row['Pendidikan Wali'] || row['Pendidikan_Wali'] || '',
+                    Pekerjaan_Wali: row['Pekerjaan Wali'] || row['Pekerjaan_Wali'] || '',
+                    Penghasilan_per_Bulan_Wali: String(row['Penghasilan per Bulan Wali'] || row['Penghasilan_per_Bulan_Wali'] || ''),
+                    Berkebutuhan_Khusus_Wali: row['Berkebutuhan Khusus Wali'] || row['Berkebutuhan_Khusus_Wali'] || '',
+                    No_HP_Wali: String(row['No HP Wali'] || row['No_HP_Wali'] || ''),
+                    // Pendidikan Sebelumnya
+                    Asal_Sekolah: row['Asal Sekolah (TK/RA)'] || row['Asal_Sekolah'] || '',
+                    Alamat_Sekolah: row['Alamat Sekolah'] || row['Alamat_Sekolah'] || '',
+                    Tanggal_Ijazah: formatDateForDisplay(XLSX.utils.format_cell(worksheet[XLSX.utils.encode_cell({r: jsonSheetData.indexOf(row) + 1, c: Object.keys(row).indexOf('Tanggal Ijazah') || Object.keys(row).indexOf('Tanggal_Ijazah')})], {raw: false}) || ''),
+                    Nomor_Ijazah: row['Nomor Ijazah'] || row['Nomor_Ijazah'] || '',
+                    // Kontak & Keterangan Lain
+                    No_HP_Siswa: String(row['No HP Siswa'] || row['No_HP_Siswa'] || ''),
+                    Email_Siswa: row['Email Siswa'] || row['Email_Siswa'] || '',
+                    Golongan_Darah: row['Golongan Darah'] || row['Golongan_Darah'] || '',
+                    Penyakit_Diderita: row['Penyakit yang Pernah Diderita'] || row['Penyakit_Diderita'] || '',
+                    Jumlah_Saudara: String(row['Jumlah Saudara'] || row['Jumlah_Saudara'] || ''),
+                    Tinggi_Badan: String(row['Tinggi Badan (cm)'] || row['Tinggi_Badan'] || ''),
+                    Berat_Badan: String(row['Berat Badan (kg)'] || row['Berat_Badan'] || ''),
+                    Lingkar_Kepala: String(row['Lingkar Kepala'] || row['Lingkar_Kepala'] || ''),
+                    Hobby: row['Hobby'] || '',
+                    Cita_Cita: row['Cita-cita'] || row['Cita_Cita'] || '',
+                    id: String(maxId), // Assign new unique ID
+                };
+            }).filter(student => student.Nama_Lengkap); // Filter out rows that don't have a Nama_Lengkap
+
+            // Merge imported data with existing data
+            allStudentData = [...allStudentData, ...importedStudents];
+            saveDataToLocalStorage(allStudentData);
+            test.options.data = allStudentData; // Update the listapplets instance's data
+            test.reload();
+            showModal('Import Berhasil', `${importedStudents.length} data siswa berhasil diimpor.`);
+            xlsxFileInput.value = ''; // Clear file input
+        }
+
+        // --- Global Search Logic ---
+        globalSearchInput.addEventListener('input', () => {
+            const searchTerm = globalSearchInput.value.toLowerCase();
+            if (searchTerm) {
+                test.options.filteredData = allStudentData.filter(student => {
+                    // Search across all string values in the student object
+                    return Object.values(student).some(value =>
+                        String(value).toLowerCase().includes(searchTerm)
+                    );
+                });
+            } else {
+                test.options.filteredData = null; // Clear filter if search term is empty
+            }
+            test.options.currentPage = 1; // Reset to first page after search
+            test.reload(); // Reload with filtered data
+        });
+
+        // --- Delete All Data Logic ---
+        deleteAllDataBtn.addEventListener('click', () => {
+            showModal('Konfirmasi Hapus Semua', 'Apakah Anda yakin ingin menghapus SEMUA data siswa? Tindakan ini tidak dapat dibatalkan.', () => {
+                allStudentData = []; // Clear all data
+                saveDataToLocalStorage(allStudentData); // Save empty array to localStorage
+                test.options.data = allStudentData; // Update listapplets instance
+                test.options.filteredData = null; // Clear any active filter
+                test.options.currentPage = 1; // Reset to first page
+                test.reload(); // Reload table
+                showModal('Berhasil', 'Semua data siswa berhasil dihapus.');
+            }, true); // Pass true to indicate it's a confirmation
+        });
+
+        // --- XLSX Export Logic ---
+        exportXlsxBtn.addEventListener('click', () => {
+            exportToXLSX();
+        });
+
+        function exportToXLSX() {
+            if (allStudentData.length === 0) {
+                showModal('Export Gagal', 'Tidak ada data siswa untuk diekspor.');
+                return;
+            }
+
+            // Define the desired order and display names for columns in the XLSX file
+            const exportOrder = [
+                { key: 'id', header: 'ID' },
+                { key: 'Nama_Lengkap', header: 'Nama Lengkap' },
+                { key: 'Jenis_Kelamin', header: 'Jenis Kelamin' },
+                { key: 'NISN', header: 'NISN' },
+                { key: 'Kebangsaan', header: 'Kebangsaan' },
+                { key: 'NIK_Siswa', header: 'NIK Siswa' },
+                { key: 'No_KK', header: 'No KK' },
+                { key: 'Tempat_Lahir', header: 'Tempat Lahir' },
+                { key: 'Tanggal_Lahir', header: 'Tanggal Lahir' },
+                { key: 'No_Akta_Lahir', header: 'No Akta Lahir' },
+                { key: 'Kebutuhan_Khusus', header: 'Kebutuhan Khusus' },
+                { key: 'Agama_Kepercayaan', header: 'Agama & Kepercayaan' },
+                { key: 'Alamat_Lengkap', header: 'Alamat Lengkap' },
+                { key: 'RT', header: 'RT' },
+                { key: 'RW', header: 'RW' },
+                { key: 'Dusun_Lingkungan', header: 'Dusun/Lingkungan' },
+                { key: 'Desa_Kelurahan', header: 'Desa/Kelurahan' },
+                { key: 'Kode_Pos', header: 'Kode Pos' },
+                { key: 'Tempat_Tinggal', header: 'Tempat Tinggal' },
+                { key: 'Moda_Transportasi', header: 'Moda Transportasi' },
+                { key: 'Anak_Ke', header: 'Anak Ke' },
+                { key: 'Nama_Ayah', header: 'Nama Ayah' },
+                { key: 'NIK_Ayah', header: 'NIK Ayah' },
+                { key: 'Tahun_Lahir_Ayah', header: 'Tahun Lahir Ayah' },
+                { key: 'Pendidikan_Ayah', header: 'Pendidikan Ayah' },
+                { key: 'Pekerjaan_Ayah', header: 'Pekerjaan Ayah' },
+                { key: 'Penghasilan_per_Bulan_Ayah', header: 'Penghasilan/Bulan Ayah' },
+                { key: 'Berkebutuhan_Khusus_Ayah', header: 'Berkebutuhan Khusus Ayah' },
+                { key: 'No_HP_Ayah', header: 'No HP Ayah' },
+                { key: 'Nama_Ibu', header: 'Nama Ibu' },
+                { key: 'NIK_Ibu', header: 'NIK Ibu' },
+                { key: 'Tahun_Lahir_Ibu', header: 'Tahun Lahir Ibu' },
+                { key: 'Pendidikan_Ibu', header: 'Pendidikan Ibu' },
+                { key: 'Pekerjaan_Ibu', header: 'Pekerjaan Ibu' },
+                { key: 'Penghasilan_per_Bulan_Ibu', header: 'Penghasilan/Bulan Ibu' },
+                { key: 'Berkebutuhan_Khusus_Ibu', header: 'Berkebutuhan Khusus Ibu' },
+                { key: 'No_HP_Ibu', header: 'No HP Ibu' },
+                { key: 'Nama_Wali', header: 'Nama Wali' },
+                { key: 'Hubungan_Wali', header: 'Hubungan Wali' },
+                { key: 'Pendidikan_Wali', header: 'Pendidikan Wali' },
+                { key: 'Pekerjaan_Wali', header: 'Pekerjaan Wali' },
+                { key: 'Penghasilan_per_Bulan_Wali', header: 'Penghasilan/Bulan Wali' },
+                { key: 'Berkebutuhan_Khusus_Wali', header: 'Berkebutuhan Khusus Wali' },
+                { key: 'No_HP_Wali', header: 'No HP Wali' },
+                { key: 'Asal_Sekolah', header: 'Asal Sekolah (TK/RA)' },
+                { key: 'Alamat_Sekolah', header: 'Alamat Sekolah' },
+                { key: 'Tanggal_Ijazah', header: 'Tanggal Ijazah' },
+                { key: 'Nomor_Ijazah', header: 'Nomor Ijazah' },
+                { key: 'No_HP_Siswa', header: 'No HP Siswa' },
+                { key: 'Email_Siswa', header: 'Email Siswa' },
+                { key: 'Golongan_Darah', header: 'Golongan Darah' },
+                { key: 'Penyakit_Diderita', header: 'Penyakit Diderita' },
+                { key: 'Jumlah_Saudara', header: 'Jumlah Saudara' },
+                { key: 'Tinggi_Badan', header: 'Tinggi Badan (cm)' },
+                { key: 'Berat_Badan', header: 'Berat Badan (kg)' },
+                { key: 'Lingkar_Kepala', header: 'Lingkar Kepala' },
+                { key: 'Hobby', header: 'Hobby' },
+                { key: 'Cita_Cita', header: 'Cita-cita' }
+            ];
+
+            const dataForExport = allStudentData.map(student => {
+                const row = {};
+                exportOrder.forEach(col => {
+                    let value = student[col.key];
+                    // Special handling for dates to ensure they are formatted consistently in export
+                    if (col.key.includes('Tanggal_Lahir') || col.key.includes('Tanggal_Ijazah')) {
+                        value = formatDateForDisplay(value); // Use the display format (DD/MM/YYYY)
+                    }
+                    row[col.header] = value; // Use the user-friendly header
+                });
+                return row;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(dataForExport, { header: exportOrder.map(col => col.header) });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const fileName = `data_siswa_${new Date().toISOString().slice(0, 19).replace(/[-T:]/g, "")}.xlsx`;
+            saveAs(new Blob([wbout], { type: 'application/octet-stream' }), fileName);
+            showModal('Export Berhasil', 'Data siswa berhasil diekspor ke XLSX.');
+        }
+
+        // --- XLSX Template Download Logic ---
+        downloadTemplateBtn.addEventListener('click', () => {
+            downloadTemplateXLSX();
+        });
+
+        function downloadTemplateXLSX() {
+            const templateHeaders = [
+                { key: 'Nama_Lengkap', header: 'Nama Lengkap' },
+                { key: 'Jenis_Kelamin', header: 'Jenis Kelamin' },
+                { key: 'NISN', header: 'NISN' },
+                { key: 'Kebangsaan', header: 'Kebangsaan' },
+                { key: 'NIK_Siswa', header: 'NIK Siswa' },
+                { key: 'No_KK', header: 'No KK' },
+                { key: 'Tempat_Lahir', header: 'Tempat Lahir' },
+                { key: 'Tanggal_Lahir', header: 'Tanggal Lahir' },
+                { key: 'No_Akta_Lahir', header: 'No Akta Lahir' },
+                { key: 'Kebutuhan_Khusus', header: 'Kebutuhan Khusus' },
+                { key: 'Agama_Kepercayaan', header: 'Agama & Kepercayaan' },
+                { key: 'Alamat_Lengkap', header: 'Alamat Lengkap' },
+                { key: 'RT', header: 'RT' },
+                { key: 'RW', header: 'RW' },
+                { key: 'Dusun_Lingkungan', header: 'Dusun/Lingkungan' },
+                { key: 'Desa_Kelurahan', header: 'Desa/Kelurahan' },
+                { key: 'Kode_Pos', header: 'Kode Pos' },
+                { key: 'Tempat_Tinggal', header: 'Tempat Tinggal' },
+                { key: 'Moda_Transportasi', header: 'Moda Transportasi' },
+                { key: 'Anak_Ke', header: 'Anak Ke' },
+                { key: 'Nama_Ayah', header: 'Nama Ayah' },
+                { key: 'NIK_Ayah', header: 'NIK Ayah' },
+                { key: 'Tahun_Lahir_Ayah', header: 'Tahun Lahir Ayah' },
+                { key: 'Pendidikan_Ayah', header: 'Pendidikan Ayah' },
+                { key: 'Pekerjaan_Ayah', header: 'Pekerjaan Ayah' },
+                { key: 'Penghasilan_per_Bulan_Ayah', header: 'Penghasilan/Bulan Ayah' },
+                { key: 'Berkebutuhan_Khusus_Ayah', header: 'Berkebutuhan Khusus Ayah' },
+                { key: 'No_HP_Ayah', header: 'No HP Ayah' },
+                { key: 'Nama_Ibu', header: 'Nama Ibu' },
+                { key: 'NIK_Ibu', header: 'NIK Ibu' },
+                { key: 'Tahun_Lahir_Ibu', header: 'Tahun Lahir Ibu' },
+                { key: 'Pendidikan_Ibu', header: 'Pendidikan Ibu' },
+                { key: 'Pekerjaan_Ibu', header: 'Pekerjaan Ibu' },
+                { key: 'Penghasilan_per_Bulan_Ibu', header: 'Penghasilan/Bulan Ibu' },
+                { key: 'Berkebutuhan_Khusus_Ibu', header: 'Berkebutuhan Khusus Ibu' },
+                { key: 'No_HP_Ibu', header: 'No HP Ibu' },
+                { key: 'Nama_Wali', header: 'Nama Wali' },
+                { key: 'Hubungan_Wali', header: 'Hubungan Wali' },
+                { key: 'Pendidikan_Wali', header: 'Pendidikan Wali' },
+                { key: 'Pekerjaan_Wali', header: 'Pekerjaan Wali' },
+                { key: 'Penghasilan_per_Bulan_Wali', header: 'Penghasilan/Bulan Wali' },
+                { key: 'Berkebutuhan_Khusus_Wali', header: 'Berkebutuhan Khusus Wali' },
+                { key: 'No_HP_Wali', header: 'No HP Wali' },
+                { key: 'Asal_Sekolah', header: 'Asal Sekolah (TK/RA)' },
+                { key: 'Alamat_Sekolah', header: 'Alamat Sekolah' },
+                { key: 'Tanggal_Ijazah', header: 'Tanggal Ijazah' },
+                { key: 'Nomor_Ijazah', header: 'Nomor Ijazah' },
+                { key: 'No_HP_Siswa', header: 'No HP Siswa' },
+                { key: 'Email_Siswa', header: 'Email Siswa' },
+                { key: 'Golongan_Darah', header: 'Golongan Darah' },
+                { key: 'Penyakit_Diderita', header: 'Penyakit Diderita' },
+                { key: 'Jumlah_Saudara', header: 'Jumlah Saudara' },
+                { key: 'Tinggi_Badan', header: 'Tinggi Badan (cm)' },
+                { key: 'Berat_Badan', header: 'Berat Badan (kg)' },
+                { key: 'Lingkar_Kepala', header: 'Lingkar Kepala' },
+                { key: 'Hobby', header: 'Hobby' },
+                { key: 'Cita_Cita', header: 'Cita-cita' }
+            ];
+
+            // Create a worksheet with only headers
+            const ws_data = [templateHeaders.map(h => h.header)];
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template Data Siswa");
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const fileName = `template_data_siswa.xlsx`;
+            saveAs(new Blob([wbout], { type: 'application/octet-stream' }), fileName);
+            showModal('Download Berhasil', 'Template XLSX berhasil diunduh.');
+        }
+
+
+        // Inisialisasi plugin listapplets
+        let test = new listapplets({
+            data: allStudentData, // Use the loaded allStudentData
+            inlineSearch: false, // Set to false as we are using global search
+            selectable: false, // Set to false
+            sortable: true, // Ensure sortable is true for sorting to work
+            filter: false, // Set to false
+            rowsPerPage: 5 // Default to 5 rows per page
+        });
+    </script>
+</body>
+</html>
