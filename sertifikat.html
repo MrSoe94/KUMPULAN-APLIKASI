@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Sertifikat dengan Manajemen Peserta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tangerine:wght@700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .certificate-title {
+            font-family: 'Tangerine', cursive;
+        }
+        .certificate-container {
+            width: 210mm;
+            height: 297mm;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            transform-origin: top center;
+        }
+        .seal {
+            width: 100px;
+            height: 100px;
+            background-color: #fde047; /* yellow-400 */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            border: 5px solid #ca8a04; /* yellow-600 */
+        }
+        .seal-inner {
+             width: 80px;
+            height: 80px;
+            background-color: #fef9c3; /* yellow-100 */
+            border-radius: 50%;
+            border: 2px dashed #ca8a04; /* yellow-600 */
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #ccc;
+            border-radius: 50%;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                border: none;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 lg:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Form and Table Section -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-lg no-print h-fit">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">Manajemen Sertifikat</h2>
+                
+                <form id="participant-form" class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-700 mt-4">Data Peserta</h3>
+                    <input type="hidden" id="editing-index">
+                    <div>
+                        <label for="nama" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                        <input type="text" id="nama" placeholder="Contoh: Budi Sanjaya" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="nomor_sertifikat" class="block text-sm font-medium text-gray-700">Nomor Sertifikat</label>
+                        <input type="text" id="nomor_sertifikat" placeholder="Contoh: 123/ABC/2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="nip" class="block text-sm font-medium text-gray-700">NIP/NIPPPK</label>
+                        <input type="text" id="nip" placeholder="Isi jika ada" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="unit_kerja" class="block text-sm font-medium text-gray-700">Unit Kerja</label>
+                        <input type="text" id="unit_kerja" placeholder="Contoh: SMA Negeri 1 Indonesia" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-gray-700 pt-4 border-t">Detail Umum & Tampilan</h3>
+                    <div>
+                        <label for="pelatihan" class="block text-sm font-medium text-gray-700">Nama Pelatihan</label>
+                        <input type="text" id="pelatihan" value="Diklat Nasional Mengenal Coding dan Kecerdasan Artifisial (AI) untuk Pembelajaran Masa Depan" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="tanggal_pelatihan" class="block text-sm font-medium text-gray-700">Tanggal Pelatihan</label>
+                        <input type="text" id="tanggal_pelatihan" value="04 - 06 Juli 2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="lokasi_tanggal_terbit" class="block text-sm font-medium text-gray-700">Lokasi & Tanggal Terbit</label>
+                        <input type="text" id="lokasi_tanggal_terbit" value="Jombang, 07 Juli 2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="penandatangan" class="block text-sm font-medium text-gray-700">Nama Penandatangan</label>
+                        <input type="text" id="penandatangan" value="Muhammad Khoiron, M.Pd" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="logo_kiri" class="block text-sm font-medium text-gray-700">Unggah Logo</label>
+                        <input type="file" id="logo_kiri" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <div>
+                        <label for="tanda_tangan" class="block text-sm font-medium text-gray-700">Unggah Gambar Tanda Tangan</label>
+                        <input type="file" id="tanda_tangan" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label for="warna_border" class="block text-sm font-medium text-gray-700">Warna Border</label>
+                        <input type="color" id="warna_border" value="#ca8a04">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label for="warna_judul" class="block text-sm font-medium text-gray-700">Warna Judul</label>
+                        <input type="color" id="warna_judul" value="#ca8a04">
+                    </div>
+                    <div class="flex gap-2">
+                         <button type="submit" id="submit-button" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Tambah Peserta</button>
+                         <button type="button" id="clear-button" class="mt-4 w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Reset Form</button>
+                    </div>
+                </form>
+
+                <div class="mt-8">
+                    <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Daftar Peserta</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Nama</th>
+                                    <th scope="col" class="px-4 py-3">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="participant-table-body">
+                                <!-- Rows will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <button id="print-button" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                    Cetak Sertifikat (Peserta Terpilih)
+                </button>
+            </div>
+
+            <!-- Certificate Preview Section -->
+            <div class="lg:col-span-2 flex justify-center items-start">
+                <div id="certificate" class="certificate-container bg-white p-12 print-area">
+                    <div id="certificate-border" class="border-2 p-8 h-full" style="border-color: #ca8a04;">
+                         <header class="text-center mb-6">
+                            <div class="flex justify-center items-center gap-4">
+                               <img id="preview-logo_kiri" src="https://seeklogo.com/images/D/diklat-logo-E195E1332F-seeklogo.com.png" alt="Logo Kiri" class="h-16" onerror="this.onerror=null;this.src='https://placehold.co/64x64/e2e8f0/000000?text=Logo';">
+                                <h1 class="text-2xl font-bold text-gray-700">DiklatOnline</h1>
+                            </div>
+                            <div class="seal my-6">
+                               <div class="seal-inner"></div>
+                            </div>
+                            <h2 id="preview-judul" class="certificate-title text-8xl" style="color: #ca8a04;">Sertifikat</h2>
+                        </header>
+
+                        <main class="text-center text-gray-800">
+                            <p class="text-sm mb-1">Nomor: <span id="preview-nomor_sertifikat">Nomor Sertifikat</span></p>
+                            <p class="text-lg font-semibold my-4">Diberikan kepada:</p>
+                            <h3 id="preview-nama" class="text-4xl font-bold mb-6">Nama Lengkap</h3>
+
+                            <div class="text-left w-full max-w-lg mx-auto text-sm mb-6">
+                                <div class="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1">
+                                    <p class="font-semibold">NIP/NIPPPK</p><p>: <span id="preview-nip">NIP/NIPPPK Anda (Jika Ada)</span></p>
+                                    <p class="font-semibold">NUPTK</p><p class="text-gray-500">: Tertulis NUPTK Anda (Jika Ada)</p>
+                                    <p class="font-semibold">NIDN</p><p class="text-gray-500">: Tertulis NIDN Anda (Jika Ada)</p>
+                                    <p class="font-semibold">Unit Kerja</p><p>: <span id="preview-unit_kerja">Unit Kerja</span></p>
+                                </div>
+                            </div>
+                            
+                            <p class="max-w-2xl mx-auto text-sm leading-relaxed">
+                                Telah mengikuti dengan tuntas kegiatan "<span id="preview-pelatihan" class="font-bold">Nama Pelatihan</span>" yang dilaksanakan oleh Tempat Pendidikan & Pelatihan "DiklatOnline" dari PT Sumber Belajar Bersama secara daring pada tanggal <span id="preview-tanggal_pelatihan" class="font-bold">Tanggal Pelatihan</span>.
+                            </p>
+
+                            <div class="mt-6">
+                                <h4 class="font-bold text-sm mb-2">Struktur Program</h4>
+                                <table class="w-full text-left text-xs border border-collapse border-gray-400">
+                                    <thead class="bg-gray-100"><tr><th class="p-2 border border-gray-400">No</th><th class="p-2 border border-gray-400">Materi yang Dipelajari</th><th class="p-2 border border-gray-400">JP</th><th class="p-2 border border-gray-400">Narasumber</th></tr></thead>
+                                    <tbody><tr><td class="p-2 border border-gray-400">1</td><td class="p-2 border border-gray-400">Kebijakan Pembelajaran Coding dan Kecerdasan Artifisial</td><td class="p-2 border border-gray-400">8 JP</td><td class="p-2 border border-gray-400">Muhammad Alimka, S.Pd., M.Pd.</td></tr><tr><td class="p-2 border border-gray-400">2</td><td class="p-2 border border-gray-400">Mengenal Lebih Dekat Kurikulum Coding dan Kecerdasan Artifisial</td><td class="p-2 border border-gray-400">8 JP</td><td class="p-2 border border-gray-400">Ali Zaenal, S.Pd., Gr</td></tr><tr><td class="p-2 border border-gray-400">3</td><td class="p-2 border border-gray-400">Strategi Menyusun Pembelajaran Coding dan Kecerdasan Artifisial</td><td class="p-2 border border-gray-400">8 JP</td><td class="p-2 border border-gray-400">Muhammad Arifin Nursalim, S.Kom</td></tr><tr><td class="p-2 border border-gray-400">4</td><td class="p-2 border border-gray-400">Belajar Mandiri Mengenal Coding dan Kecerdasan Artifisial (AI) untuk Pembelajaran Masa Depan</td><td class="p-2 border border-gray-400">8 JP</td><td class="p-2 border border-gray-400">Muhammad Alimka, S.Pd., M.Pd., Laili Zaenal, S.Pd., Gr</td></tr><tr class="font-bold bg-gray-50"><td colspan="2" class="p-2 border border-gray-400 text-center">Total</td><td colspan="2" class="p-2 border border-gray-400">32 JP</td></tr></tbody>
+                                </table>
+                                <p class="text-left text-xs mt-2">Hasil evaluasi peserta mendapatkan nilai: <span class="font-bold">SANGAT BAIK</span></p>
+                            </div>
+                        </main>
+
+                        <footer class="mt-8 flex justify-between items-end">
+                            <div>
+                                <img id="preview-qr_code" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Sertifikat" alt="QR Code" class="h-20 w-20" onerror="this.onerror=null;this.src='https://placehold.co/80x80/e2e8f0/000000?text=QR';">
+                                <p class="text-xs mt-1">PT Sumber Belajar Bersama</p>
+                            </div>
+                            <div class="text-center text-sm">
+                                <p id="preview-lokasi_tanggal_terbit">Lokasi, Tanggal Terbit</p>
+                                <p>Founder / CEO Diklat Online</p>
+                                <img id="preview-tanda_tangan" src="https://placehold.co/120x60/ffffff/000000/png?text=TTD" alt="Tanda Tangan" class="h-16 mx-auto my-2 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/120x60/e2e8f0/000000?text=TTD';">
+                                <p id="preview-penandatangan" class="font-bold underline">Nama Penandatangan</p>
+                            </div>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- APLIKASI STATE ---
+        let participants = [];
+        let logoKiriUrl = "https://seeklogo.com/images/D/diklat-logo-E195E1332F-seeklogo.com.png";
+        let tandaTanganUrl = "https://placehold.co/120x60/ffffff/000000/png?text=TTD";
+        let selectedParticipantIndex = -1;
+
+        // --- ELEMENT SELECTORS ---
+        const form = document.getElementById('participant-form');
+        const tableBody = document.getElementById('participant-table-body');
+        const submitButton = document.getElementById('submit-button');
+        const clearButton = document.getElementById('clear-button');
+        const editingIndexInput = document.getElementById('editing-index');
+        
+        // --- FORM INPUTS ---
+        const formInputs = {
+            nama: document.getElementById('nama'),
+            nomor_sertifikat: document.getElementById('nomor_sertifikat'),
+            nip: document.getElementById('nip'),
+            unit_kerja: document.getElementById('unit_kerja'),
+            pelatihan: document.getElementById('pelatihan'),
+            tanggal_pelatihan: document.getElementById('tanggal_pelatihan'),
+            lokasi_tanggal_terbit: document.getElementById('lokasi_tanggal_terbit'),
+            penandatangan: document.getElementById('penandatangan'),
+            warna_border: document.getElementById('warna_border'),
+            warna_judul: document.getElementById('warna_judul'),
+            logo_kiri: document.getElementById('logo_kiri'),
+            tanda_tangan: document.getElementById('tanda_tangan'),
+        };
+
+        // --- FUNCTIONS ---
+
+        /**
+         * Merender ulang tabel peserta dari data array 'participants'.
+         */
+        function renderTable() {
+            tableBody.innerHTML = ''; // Kosongkan tabel
+            if (participants.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-gray-500">Belum ada data peserta.</td></tr>`;
+            } else {
+                participants.forEach((p, index) => {
+                    const row = document.createElement('tr');
+                    const isSelected = index === selectedParticipantIndex;
+                    row.className = `bg-white border-b hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-100' : ''}`;
+                    row.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap" onclick="viewParticipant(${index})">${p.nama}</td>
+                        <td class="px-4 py-3 flex items-center gap-2">
+                            <button onclick="editParticipant(${index})" class="font-medium text-yellow-600 hover:underline">Edit</button>
+                            <button onclick="deleteParticipant(${index})" class="font-medium text-red-600 hover:underline">Hapus</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+        }
+
+        /**
+         * Memperbarui pratinjau sertifikat berdasarkan data yang diberikan.
+         * @param {object} data - Objek data peserta atau objek kosong untuk default.
+         */
+        function updatePreview(data = {}) {
+            // Get default values from the form for general fields
+            const defaultPelatihan = formInputs.pelatihan.value;
+            const defaultTanggalPelatihan = formInputs.tanggal_pelatihan.value;
+            const defaultLokasiTanggal = formInputs.lokasi_tanggal_terbit.value;
+            const defaultPenandatangan = formInputs.penandatangan.value;
+            const defaultWarnaBorder = formInputs.warna_border.value;
+            const defaultWarnaJudul = formInputs.warna_judul.value;
+
+            // Update text
+            document.getElementById('preview-nama').textContent = data.nama || 'Nama Lengkap';
+            document.getElementById('preview-nomor_sertifikat').textContent = data.nomor_sertifikat || 'Nomor Sertifikat';
+            document.getElementById('preview-nip').textContent = data.nip || 'NIP/NIPPPK Anda (Jika Ada)';
+            document.getElementById('preview-unit_kerja').textContent = data.unit_kerja || 'Unit Kerja';
+            
+            // General info - use participant data if available, otherwise use form defaults
+            document.getElementById('preview-pelatihan').textContent = data.pelatihan || defaultPelatihan;
+            document.getElementById('preview-tanggal_pelatihan').textContent = data.tanggal_pelatihan || defaultTanggalPelatihan;
+            document.getElementById('preview-lokasi_tanggal_terbit').textContent = data.lokasi_tanggal_terbit || defaultLokasiTanggal;
+            document.getElementById('preview-penandatangan').textContent = data.penandatangan || defaultPenandatangan;
+            
+            // Update styles and images
+            document.getElementById('certificate-border').style.borderColor = data.warna_border || defaultWarnaBorder;
+            document.getElementById('preview-judul').style.color = data.warna_judul || defaultWarnaJudul;
+            document.getElementById('preview-logo_kiri').src = data.logo_kiri_url || logoKiriUrl;
+            document.getElementById('preview-tanda_tangan').src = data.tanda_tangan_url || tandaTanganUrl;
+
+            // Update QR Code
+            const qrData = `Nama: ${data.nama || ''}\nNomor Sertifikat: ${data.nomor_sertifikat || ''}\nPelatihan: ${data.pelatihan || defaultPelatihan}`;
+            const encodedQrData = encodeURIComponent(qrData);
+            document.getElementById('preview-qr_code').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodedQrData}`;
+        }
+
+        /**
+         * Mengosongkan form peserta dan mereset state ke mode 'tambah'.
+         */
+        function clearParticipantForm() {
+            formInputs.nama.value = '';
+            formInputs.nomor_sertifikat.value = '';
+            formInputs.nip.value = '';
+            formInputs.unit_kerja.value = '';
+            editingIndexInput.value = '';
+            submitButton.textContent = 'Tambah Peserta';
+            submitButton.className = 'mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300';
+        }
+        
+        /**
+         * Menampilkan data peserta di form untuk diedit.
+         * @param {number} index - Index peserta di array 'participants'.
+         */
+        function editParticipant(index) {
+            const p = participants[index];
+            editingIndexInput.value = index;
+
+            // Isi form dengan data peserta
+            formInputs.nama.value = p.nama;
+            formInputs.nomor_sertifikat.value = p.nomor_sertifikat;
+            formInputs.nip.value = p.nip;
+            formInputs.unit_kerja.value = p.unit_kerja;
+            
+            submitButton.textContent = 'Simpan Perubahan';
+            submitButton.className = 'mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300';
+            
+            form.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        /**
+         * Menampilkan sertifikat peserta tanpa masuk mode edit.
+         * @param {number} index - Index peserta di array 'participants'.
+         */
+        function viewParticipant(index) {
+            selectedParticipantIndex = index;
+            updatePreview(participants[index]);
+            renderTable(); // Re-render to highlight selection
+        }
+
+        /**
+         * Menghapus peserta dari daftar.
+         * @param {number} index - Index peserta di array 'participants'.
+         */
+        function deleteParticipant(index) {
+            if (confirm(`Apakah Anda yakin ingin menghapus peserta "${participants[index].nama}"?`)) {
+                participants.splice(index, 1);
+                // If the deleted participant was the selected one, clear preview
+                if (selectedParticipantIndex === index) {
+                    selectedParticipantIndex = -1;
+                    updatePreview();
+                }
+                renderTable();
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+        
+        // Handle form submission (Add or Edit)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editingIndex = editingIndexInput.value;
+
+            const participantData = {
+                nama: formInputs.nama.value,
+                nomor_sertifikat: formInputs.nomor_sertifikat.value,
+                nip: formInputs.nip.value,
+                unit_kerja: formInputs.unit_kerja.value,
+                // General data is now tied to the preview, not individual participants
+            };
+            
+            if (!participantData.nama) {
+                alert("Nama lengkap tidak boleh kosong.");
+                return;
+            }
+
+            if (editingIndex !== '') {
+                participants[editingIndex] = participantData;
+            } else {
+                participants.push(participantData);
+            }
+            
+            viewParticipant(editingIndex !== '' ? parseInt(editingIndex) : participants.length - 1);
+            clearParticipantForm();
+        });
+        
+        // Listen to changes in general settings to update preview
+        ['pelatihan', 'tanggal_pelatihan', 'lokasi_tanggal_terbit', 'penandatangan', 'warna_border', 'warna_judul'].forEach(id => {
+            formInputs[id].addEventListener('input', () => {
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
+            });
+        });
+
+        // Handle file uploads
+        formInputs.logo_kiri.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                logoKiriUrl = URL.createObjectURL(file);
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
+            }
+        });
+        formInputs.tanda_tangan.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                tandaTanganUrl = URL.createObjectURL(file);
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
+            }
+        });
+
+        // Handle clear form button
+        clearButton.addEventListener('click', clearParticipantForm);
+        
+        // Handle print button
+        document.getElementById('print-button').addEventListener('click', () => {
+            if (selectedParticipantIndex === -1) {
+                alert("Silakan pilih peserta dari tabel untuk dicetak.");
+                return;
+            }
+            window.print();
+        });
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            renderTable();
+            updatePreview(); // Show empty/default preview initially
+        };
+    </script>
+</body>
+</html>
