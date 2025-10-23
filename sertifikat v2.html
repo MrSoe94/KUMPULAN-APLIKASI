@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Generator Sertifikat Profesional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Updated Google Fonts import to include more font families -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Lora:wght@400;700&family=Merriweather:wght@4400;700&family=Montserrat:wght@4400;700&family=Open+Sans:wght@4400;700&family=Pacifico&family=Sacramento&family=Oswald:wght@4400;700&family=Great+Vibes&family=Allura&family=Dancing+Script&family=Lato&family=Poppins&family=Crimson+Pro&family=Bodoni+Moda&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> <!-- Added html2canvas for download -->
+    <!-- New: jsPDF library for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-serif-display {
+            font-family: 'Playfair Display', serif;
+        }
+        .canvas-container {
+            aspect-ratio: 1.414 / 1; /* A4 paper ratio (approx) */
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            position: relative; /* Needed for positioning draggable text elements */
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.5rem;
+            background-color: #f0f0f0;
+            cursor: grab; /* Default cursor for canvas */
+        }
+        .tab-button.active {
+            background-color: #1d4ed8;
+            color: white;
+        }
+        .template-thumbnail {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+            height: 100px;
+            border-radius: 0.375rem;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .template-thumbnail .overlay {
+            background-color: rgba(0,0,0,0.3);
+            color: white;
+            font-weight: 500;
+            text-align: center;
+            padding: 4px;
+            font-size: 0.8rem;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        .template-thumbnail.selected {
+            border-color: #1d4ed8;
+            transform: scale(1.05);
+        }
+        .logo-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            cursor: grab;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-800">Generator Sertifikat Profesional</h1>
+            <p class="text-gray-600 mt-2">Buat, kustomisasi, dan unduh sertifikat dengan mudah.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Kolom Kontrol -->
+            <div class="bg-white p-6 rounded-lg shadow-md space-y-8">
+                
+                <!-- 1. Pemilihan Template -->
+                <section>
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">1. Pilih Template Sertifikat</h2>
+                    <div class="flex border border-gray-300 rounded-lg p-1 bg-gray-50 mb-4">
+                        <button id="tab-btn-provided" class="tab-button flex-1 p-2 rounded-md text-sm font-medium active">Template Kami</button>
+                        <button id="tab-btn-upload" class="tab-button flex-1 p-2 rounded-md text-sm font-medium">Upload Gambar Template</button>
+                    </div>
+                    <div id="tab-content-provided">
+                        <div id="template-thumbnails-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-60 overflow-y-auto pr-2">
+                            <!-- Template thumbnails will be dynamically generated here -->
+                        </div>
+                    </div>
+                    <div id="tab-content-upload" class="hidden">
+                        <input type="file" id="template-upload-input" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </section>
+
+                <!-- 2. Kustomisasi Teks -->
+                <section>
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">2. Kustomisasi Teks</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="field-title" class="block text-sm font-medium text-gray-700">Judul Utama</label>
+                            <input type="text" id="field-title" value="Sertifikat Penghargaan" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="field-subtitle" class="block text-sm font-medium text-gray-700">Sub-Judul</label>
+                            <input type="text" id="field-subtitle" value="DIBERIKAN KEPADA" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="field-description" class="block text-sm font-medium text-gray-700">Deskripsi/Alasan Penghargaan</label>
+                            <textarea id="field-description" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">Atas partisipasi dan kontribusi luar biasa dalam Workshop Pengembangan Aplikasi Web Interaktif.</textarea>
+                        </div>
+                        
+                        <!-- NEW: Header Certificate Text Field -->
+                        <div class="md:col-span-2">
+                            <label for="field-header-certificate-text" class="block text-sm font-medium text-gray-700">Teks Header Sertifikat</label>
+                            <input type="text" id="field-header-certificate-text" value="SERTIFIKAT" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+
+                        <!-- Issuer 1 Fields -->
+                        <div>
+                            <label for="field-issuer" class="block text-sm font-medium text-gray-700">Nama Pemberi 1</label>
+                            <input type="text" id="field-issuer" value="Sugandi,S.Kom" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="field-issuer-title" class="block text-sm font-medium text-gray-700">Jabatan Pemberi 1</label>
+                            <input type="text" id="field-issuer-title" value="Direktur Program" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="field-issuer-nip" class="block text-sm font-medium text-gray-700">NIP Pemberi 1</label>
+                            <input type="text" id="field-issuer-nip" value="1994xxxxxxxxxx1001" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+
+                        <!-- Issuer 2 Fields -->
+                        <div>
+                            <label for="field-issuer2" class="block text-sm font-medium text-gray-700">Nama Pemberi 2</label>
+                            <input type="text" id="field-issuer2" value="Prof. Siti Aminah" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="field-issuer-title2" class="block text-sm font-medium text-gray-700">Jabatan Pemberi 2</label>
+                            <input type="text" id="field-issuer-title2" value="Kepala Departemen" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="field-issuer-nip2" class="block text-sm font-medium text-gray-700">NIP Pemberi 2</label>
+                            <input type="text" id="field-issuer-nip2" value="198005152005022002" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+
+                        <!-- Date Field -->
+                        <div>
+                            <label for="field-date" class="block text-sm font-medium text-gray-700">Tanggal Pelaksanaan</label>
+                            <input type="text" id="field-date" value="27 Juni 2025" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        </div>
+                    </div>
+                    <!-- New: Clear All Text Inputs button -->
+                    <button id="clear-text-inputs-btn" class="mt-4 w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-eraser"></i> Bersihkan Semua Input Teks
+                    </button>
+                </section>
+
+                <!-- NEW: Back of Certificate Content -->
+                <section>
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">3. Konten Belakang Sertifikat</h2>
+                    <p class="text-sm text-gray-600 mb-4">Isi detail materi, narasumber, dan jadwal di sini.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="back-field-materi" class="block text-sm font-medium text-gray-700">Daftar Materi</label>
+                            <textarea id="back-field-materi" rows="5" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Contoh:&#10;- Pengenalan HTML & CSS (09:00 - 10:30)&#10;- JavaScript Dasar (10:45 - 12:00)&#10;- Studi Kasus Proyek (13:00 - 14:30)"></textarea>
+                        </div>
+                        <div>
+                            <label for="back-field-narasumber" class="block text-sm font-medium text-gray-700">Daftar Narasumber</label>
+                            <textarea id="back-field-narasumber" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Contoh:&#10;- Budi Santoso, S.T., M.Kom&#10;- Dr. Indah Permata, M.Eng"></textarea>
+                        </div>
+                        <div>
+                            <label for="back-field-jam" class="block text-sm font-medium text-gray-700">Jam Pelaksanaan</label>
+                            <input type="text" id="back-field-jam" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Contoh: 09:00 - 16:00 WIB">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Data Penerima -->
+                <section>
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">4. Data Penerima Sertifikat</h2>
+                    <div class="flex border border-gray-300 rounded-lg p-1 bg-gray-50 mb-4">
+                        <button id="data-tab-manual" class="tab-button flex-1 p-2 rounded-md text-sm font-medium active">Input Manual</button>
+                        <button id="data-tab-excel" class="tab-button flex-1 p-2 rounded-md text-sm font-medium">Import dari Excel</button>
+                    </div>
+
+                    <!-- Input Manual -->
+                    <div id="data-content-manual">
+                        <div class="space-y-3">
+                            <div>
+                                <label for="recipient-name" class="block text-sm font-medium text-gray-700">Nama Penerima</label>
+                                <input type="text" id="recipient-name" placeholder="Contoh: Andi Wijaya" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="recipient-jabatan" class="block text-sm font-medium text-gray-700">Jabatan Penerima</label>
+                                <input type="text" id="recipient-jabatan" placeholder="Contoh: Manajer Proyek" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="recipient-nip" class="block text-sm font-medium text-gray-700">NIP Penerima</label>
+                                <input type="text" id="recipient-nip" placeholder="Contoh: 198510202010011005" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                            </div>
+                            <div>
+                                <label for="recipient-nuptk" class="block text-sm font-medium text-gray-700">NUPTK Penerima</label>
+                                <input type="text" id="recipient-nuptk" placeholder="Contoh: 1234567890123456" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                <input type="hidden" id="editing-index">
+                            </div>
+                            <button id="add-recipient-btn" class="w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition flex items-center justify-center gap-2">
+                                <i class="fas fa-plus-circle"></i> Tambah ke Daftar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Import Excel -->
+                    <div id="data-content-excel" class="hidden">
+                        <p class="text-sm text-gray-600 mb-2">Upload file .xlsx atau .xls. Pastikan kolom-kolom berikut sesuai urutan:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-600 mb-2">
+                            <li>**Kolom A:** Nama Penerima</li>
+                            <li>**Kolom B:** Jabatan Penerima</li>
+                            <li>**Kolom C:** NIP Penerima</li>
+                            <li>**Kolom D:** NUPTK Penerima</li>
+                        </ul>
+                        <input type="file" id="excel-upload-input" accept=".xlsx, .xls" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                        <button id="import-excel-btn" class="mt-2 w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition">Import Nama</button>
+                    </div>
+
+                    <!-- Daftar Penerima -->
+                    <div class="mt-6">
+                        <h3 class="font-semibold text-lg mb-2">Daftar Penerima</h3>
+                        <div id="recipient-list-container" class="max-h-60 overflow-y-auto bg-gray-50 p-3 rounded-lg border">
+                            <table class="w-full text-sm text-left text-gray-500">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-2">Nama</th>
+                                        <th scope="col" class="px-4 py-2">Jabatan</th>
+                                        <th scope="col" class="px-4 py-2">NIP</th>
+                                        <th scope="col" class="px-4 py-2">NUPTK</th>
+                                        <th scope="col" class="px-4 py-2 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recipient-table-body">
+                                    <!-- Data akan diisi oleh JavaScript -->
+                                    <tr class="placeholder-row">
+                                        <td colspan="5" class="text-center p-4 text-gray-400">Belum ada data penerima.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Kelola Logo Instansi (New Section) -->
+                <section>
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">5. Kelola Logo Instansi</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="logo-upload-input" class="block text-sm font-medium text-gray-700">Upload Logo (dari komputer)</label>
+                            <input type="file" id="logo-upload-input" accept="image/*" multiple class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                        </div>
+                        <div>
+                            <label for="logo-url-input" class="block text-sm font-medium text-gray-700">Tambah Logo (dari URL)</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="logo-url-input" placeholder="Masukkan URL gambar logo..." class="flex-1 p-2 border rounded-md">
+                                <button id="add-logo-url-btn" class="bg-purple-600 text-white p-2 rounded-md hover:bg-purple-700 transition">Tambah Logo</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="font-semibold text-lg mb-2">Daftar Logo</h3>
+                        <div id="logo-list-container" class="max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-lg border flex flex-wrap gap-2">
+                            <!-- Logo thumbnails will be appended here -->
+                            <p class="text-center p-2 text-gray-400 w-full" id="no-logos-message">Belum ada logo ditambahkan.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. Kustomisasi Elemen Terpilih -->
+                <section id="element-controls-section">
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">6. Kustomisasi Elemen Terpilih</h2>
+                    <p id="element-selection-hint" class="text-gray-600 mb-4">Pilih teks atau logo di pratinjau untuk mengeditnya.</p>
+                    <div id="font-controls" class="space-y-3 hidden">
+                        <h3 class="font-semibold text-lg mb-2">Kontrol Teks</h3>
+                        <div>
+                            <label for="font-size-input" class="block text-sm font-medium text-gray-700">Ukuran Font</label>
+                            <input type="number" id="font-size-input" min="10" max="200" value="30" class="mt-1 block w-full p-2 border rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <input type="checkbox" id="font-weight-bold" class="mr-2">
+                            <label for="font-weight-bold" class="text-sm font-medium text-gray-700">Tebal</label>
+                        </div>
+                        <div>
+                            <label for="font-family-select" class="block text-sm font-medium text-gray-700">Jenis Font</label>
+                            <select id="font-family-select" class="mt-1 block w-full p-2 border rounded-md shadow-sm">
+                                <option value="Inter">Inter</option>
+                                <option value="Playfair Display">Playfair Display</option>
+                                <option value="Lora">Lora</option>
+                                <option value="Merriweather">Merriweather</option>
+                                <option value="Montserrat">Montserrat</option>
+                                <option value="Open Sans">Open Sans</option>
+                                <option value="Pacifico">Pacifico</option>
+                                <option value="Sacramento">Sacramento</option>
+                                <option value="Oswald">Oswald</option>
+                                <option value="Great Vibes">Great Vibes</option>
+                                <option value="Allura">Allura</option>
+                                <option value="Dancing Script">Dancing Script</option>
+                                <option value="Lato">Lato</option>
+                                <option value="Poppins">Poppins</option>
+                                <option value="Crimson Pro">Crimson Pro</option>
+                                <option value="Bodoni Moda">Bodoni Moda</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="text-color-input" class="block text-sm font-medium text-gray-700">Warna Teks</label>
+                            <input type="color" id="text-color-input" value="#333333" class="mt-1 block w-full h-10 border rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="text-align-select" class="block text-sm font-medium text-gray-700">Perataan Teks</label>
+                            <select id="text-align-select" class="mt-1 block w-full p-2 border rounded-md shadow-sm">
+                                <option value="left">Kiri</option>
+                                <option value="center">Tengah</option>
+                                <option value="right">Kanan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="font-upload-input" class="block text-sm font-medium text-gray-700">Upload Font Kustom (.ttf, .otf, .woff)</label>
+                            <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                    </div>
+                    <div id="image-controls" class="space-y-3 hidden">
+                        <h3 class="font-semibold text-lg mb-2">Kontrol Gambar</h3>
+                        <div>
+                            <label for="image-width-input" class="block text-sm font-medium text-gray-700">Lebar Gambar</label>
+                            <input type="number" id="image-width-input" min="10" max="1000" value="100" class="mt-1 block w-full p-2 border rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="image-height-input" class="block text-sm font-medium text-gray-700">Tinggi Gambar</label>
+                            <input type="number" id="image-height-input" min="10" max="1000" value="100" class="mt-1 block w-full p-2 border rounded-md shadow-sm">
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Kolom Pratinjau -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4 text-center text-blue-700">Pratinjau Sertifikat</h2>
+                <div class="flex justify-center gap-4 mb-4">
+                    <button id="view-front-btn" class="tab-button p-2 rounded-md text-sm font-medium active">Depan Sertifikat</button>
+                    <button id="view-back-btn" class="tab-button p-2 rounded-md text-sm font-medium">Belakang Sertifikat</button>
+                </div>
+                <div class="canvas-container relative">
+                    <canvas id="certificate-canvas" width="1123" height="794"></canvas>
+                </div>
+                <div class="mt-6 flex items-center justify-center gap-4">
+                    <button id="prev-btn" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="preview-indicator" class="font-medium text-gray-700">Penerima 0 / 0</span>
+                    <button id="next-btn" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="download-png-btn" class="w-full bg-blue-600 text-white p-3 text-lg font-bold rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <i class="fas fa-image"></i> Unduh PNG
+                    </button>
+                    <button id="download-pdf-btn" class="w-full bg-red-600 text-white p-3 text-lg font-bold rounded-md hover:bg-red-700 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <i class="fas fa-file-pdf"></i> Unduh PDF
+                    </button>
+                </div>
+                <!-- NEW: Download All as PDF button -->
+                <div class="mt-4">
+                    <button id="download-all-pdf-btn" class="w-full bg-indigo-600 text-white p-3 text-lg font-bold rounded-md hover:bg-indigo-700 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <i class="fas fa-file-pdf"></i> Unduh Semua sebagai PDF
+                    </button>
+                </div>
+                <div class="mt-4">
+                    <button id="reset-all-data-btn" class="w-full bg-red-600 text-white p-3 text-lg font-bold rounded-md hover:bg-red-700 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-redo"></i> Reset Semua Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal Structure -->
+    <div id="custom-modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div id="custom-modal-content" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm mx-auto">
+            <p id="modal-message" class="text-gray-800 text-center mb-6 text-lg"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="modal-ok-btn" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition">Oke</button>
+                <button id="modal-cancel-btn" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-400 transition hidden">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // === DOM ELEMENTS ===
+            const canvas = document.getElementById('certificate-canvas');
+            const ctx = canvas.getContext('2d');
+            const canvasContainer = document.querySelector('.canvas-container');
+            
+            // Template controls
+            const templateTabs = { provided: document.getElementById('tab-btn-provided'), upload: document.getElementById('tab-btn-upload') };
+            const templateContents = { provided: document.getElementById('tab-content-provided'), upload: document.getElementById('tab-content-upload') };
+            const templateThumbnailsContainer = document.getElementById('template-thumbnails-container');
+            const templateUploadInput = document.getElementById('template-upload-input');
+
+            // Text fields (input elements) - only for getting/setting content
+            const textFields = {
+                title: document.getElementById('field-title'),
+                subtitle: document.getElementById('field-subtitle'),
+                description: document.getElementById('field-description'),
+                headerCertificateText: document.getElementById('field-header-certificate-text'),
+                issuer: document.getElementById('field-issuer'),
+                issuerTitle: document.getElementById('field-issuer-title'),
+                issuerNip: document.getElementById('field-issuer-nip'),
+                issuer2: document.getElementById('field-issuer2'),
+                issuerTitle2: document.getElementById('field-issuer-title2'),
+                issuerNip2: document.getElementById('field-issuer-nip2'),
+                date: document.getElementById('field-date'),
+            };
+
+            // NEW: Back of Certificate Text Fields
+            const backTextFields = {
+                materi: document.getElementById('back-field-materi'),
+                narasumber: document.getElementById('back-field-narasumber'),
+                jam: document.getElementById('back-field-jam'),
+            };
+
+            // Element controls (font/image)
+            const elementControlsSection = document.getElementById('element-controls-section');
+            const elementSelectionHint = document.getElementById('element-selection-hint');
+            const fontControlsDiv = document.getElementById('font-controls');
+            const imageControlsDiv = document.getElementById('image-controls');
+
+            // Font controls
+            const fontSizeInput = document.getElementById('font-size-input');
+            const fontWeightBold = document.getElementById('font-weight-bold');
+            const fontFamilySelect = document.getElementById('font-family-select');
+            const textColorInput = document.getElementById('text-color-input');
+            const textAlignSelect = document.getElementById('text-align-select');
+
+            // New: Font Upload Input
+            const fontUploadInput = document.getElementById('font-upload-input');
+
+            // Image controls
+            const imageWidthInput = document.getElementById('image-width-input');
+            const imageHeightInput = document.getElementById('image-height-input');
+
+            // Data controls - Re-introducing these elements as they are present in the provided index 15.html
+            const dataTabs = { manual: document.getElementById('data-tab-manual'), excel: document.getElementById('data-tab-excel') };
+            const dataContents = { manual: document.getElementById('data-content-manual'), excel: document.getElementById('data-content-excel') };
+            const recipientNameInput = document.getElementById('recipient-name');
+            const recipientJabatanInput = document.getElementById('recipient-jabatan');
+            const recipientNipInput = document.getElementById('recipient-nip');
+            const recipientNuptkInput = document.getElementById('recipient-nuptk');
+            const addRecipientBtn = document.getElementById('add-recipient-btn');
+            const editingIndexInput = document.getElementById('editing-index');
+            const excelUploadInput = document.getElementById('excel-upload-input');
+            const importExcelBtn = document.getElementById('import-excel-btn');
+            const recipientTableBody = document.getElementById('recipient-table-body');
+            
+            // Logo controls
+            const logoUploadInput = document.getElementById('logo-upload-input');
+            const logoUrlInput = document.getElementById('logo-url-input');
+            const addLogoUrlBtn = document.getElementById('add-logo-url-btn');
+            const logoListContainer = document.getElementById('logo-list-container');
+            const noLogosMessage = document.getElementById('no-logos-message');
+
+            // Preview & Download
+            const viewFrontBtn = document.getElementById('view-front-btn'); // NEW
+            const viewBackBtn = document.getElementById('view-back-btn');   // NEW
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const previewIndicator = document.getElementById('preview-indicator');
+            const downloadPngBtn = document.getElementById('download-png-btn');
+            const downloadPdfBtn = document.getElementById('download-pdf-btn');
+            const downloadAllPdfBtn = document.getElementById('download-all-pdf-btn');
+            const resetAllDataBtn = document.getElementById('reset-all-data-btn');
+            const clearTextFieldsBtn = document.getElementById('clear-text-inputs-btn');
+
+            // Custom Modal Elements
+            const customModalOverlay = document.getElementById('custom-modal-overlay');
+            const modalMessage = document.getElementById('modal-message');
+            const modalOkBtn = document.getElementById('modal-ok-btn');
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+
+            // === STATE ===
+            let recipients = [];
+            let currentRecipientIndex = -1;
+            let currentTemplateId = 'professional'; // Default template ID
+            let templateImage = new Image();
+            templateImage.crossOrigin = "Anonymous";
+            let isCustomImageLoaded = false; // True if an image was uploaded, false if using code-drawn templates
+            let nextLogoId = 0;
+
+            let draggableElements = []; // Array of {id, type, x, y, view, ...}
+            let draggedElement = null;
+            let dragStartX, dragStartY;
+            let elementStartX, elementStartY;
+            let selectedDraggableElement = null;
+            let isDownloading = false;
+            let currentView = 'front'; // 'front' or 'back' // NEW
+
+            const LOCAL_STORAGE_KEY = 'certificateGeneratorState';
+
+            // Initial default draggable text elements definition (used for fresh start/reset)
+            // Added 'view' property to specify which side of the certificate the element belongs to
+            const defaultDraggableTextElements = [
+                // Front of Certificate Elements
+                { id: 'title', type: 'text', content: '', x: 1123 / 2, y: 100, fontSize: 70, fontStyle: 'bold', fontFamily: 'Playfair Display', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'subtitle', type: 'text', content: '', x: 1123 / 2, y: 200, fontSize: 30, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'recipientName', type: 'text', content: '', x: 1123 / 2, y: 300, fontSize: 90, fontStyle: 'bold', fontFamily: 'Playfair Display', color: '#0d3d75', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 0.9, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'recipientJabatan', type: 'text', content: '', x: 1123 / 2, y: 350, fontSize: 28, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true }, 
+                { id: 'recipientNip', type: 'text', content: '', x: 1123 / 2, y: 390, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'recipientNuptk', type: 'text', content: '', x: 1123 / 2, y: 430, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'description', type: 'text', content: '', x: 1123 / 2, y: 450, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'top', maxWidth: 1123 - 250, lineHeightMultiplier: 1.1, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'headerCertificateText', type: 'text', content: 'SERTIFIKAT', x: 1123 / 2, y: 75, fontSize: 50, fontStyle: 'bold', fontFamily: 'Inter', color: '#FFFFFF', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuer', type: 'text', content: '', x: 1123 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerTitle', type: 'text', content: '', x: 1123 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerNip', type: 'text', content: '', x: 1123 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'date', type: 'text', content: '', x: 1123 - 150, y: 150, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'right', textBaseline: 'alphabetic', maxWidth: 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'dateLabel', type: 'text', content: 'Tanggal', x: 1123 - 150, y: 180, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'right', textBaseline: 'alphabetic', maxWidth: 200, lineHeightMultiplier: 1.2, fixedRelative: 'date', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuer2', type: 'text', content: '', x: 1123 * 3 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerTitle2', type: 'text', content: '', x: 1123 * 3 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerNip2', type: 'text', content: '', x: 1123 * 3 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+            
+                // Back of Certificate Elements (NEW)
+                { id: 'backHeader', type: 'text', content: 'Materi & Narasumber', x: 1123 / 2, y: 100, fontSize: 48, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'backMateriTitle', type: 'text', content: 'Materi:', x: 100, y: 200, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'backMateri', type: 'text', content: '', x: 100, y: 240, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'top', maxWidth: 1123 - 200, lineHeightMultiplier: 1.3, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'backNarasumberTitle', type: 'text', content: 'Narasumber:', x: 100, y: 450, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'backNarasumber', type: 'text', content: '', x: 100, y: 490, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'top', maxWidth: 1123 - 200, lineHeightMultiplier: 1.3, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'backJamTitle', type: 'text', content: 'Jam Pelaksanaan:', x: 100, y: 650, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'backJam', type: 'text', content: '', x: 100, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+            ];
+
+            // All available templates (hardcoded only)
+            let allTemplates = [];
+
+            // Define hardcoded templates here (reduced to 3)
+            const hardcodedTemplates = [
+                {
+                    id: 'professional',
+                    name: 'Profesional',
+                    initialHeaderColor: '#FFFFFF',
+                    initialBodyColor: '#E0E0E0',
+                    initialRecipientNameColor: '#0d3d75', // Changed to a darker blue
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#f0f4f8';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.fillStyle = '#0a2e5c';
+                        ctx.fillRect(0, 0, w, h * 0.15);
+                        ctx.fillRect(0, h * 0.85, w, h * 0.15);
+                        ctx.fillStyle = '#d4af37';
+                        ctx.fillRect(0, h * 0.15, w, 5);
+                        ctx.fillRect(0, h * 0.85 - 5, w, 5);
+                        ctx.font = '50px Inter';
+                        ctx.fillStyle = '#d4af37';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'alphabetic';
+                        ctx.fillText('⭐', 40, 75);
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'alphabetic';
+                        ctx.fillText('⭐', w - 40, 75);
+                    }
+                },
+                {
+                    id: 'modern',
+                    name: 'Modern',
+                    initialHeaderColor: '#FFFFFF',
+                    initialBodyColor: '#E0E0E0',
+                    initialRecipientNameColor: '#00ffff',
+                    draw: function(ctx, w, h) {
+                        const gradientModern = ctx.createLinearGradient(0, 0, w, h);
+                        gradientModern.addColorStop(0, '#4f46e5');
+                        gradientModern.addColorStop(1, '#c026d3');
+                        ctx.fillStyle = gradientModern;
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.beginPath();
+                        ctx.moveTo(0, h * 0.7);
+                        ctx.bezierCurveTo(w * 0.25, h * 0.6, w * 0.3, h * 0.8, w * 0.5, h * 0.75);
+                        ctx.bezierCurveTo(w * 0.75, h * 0.7, w * 0.8, h * 0.9, w, h * 0.8);
+                        ctx.lineTo(w, h);
+                        ctx.lineTo(0, h);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                },
+                {
+                    id: 'formal',
+                    name: 'Formal',
+                    initialHeaderColor: '#333333',
+                    initialBodyColor: '#555555',
+                    initialRecipientNameColor: '#0d3d75',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#fdfbf4';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.strokeStyle = '#a88e69';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(20, 20, w-40, h-40);
+                        ctx.strokeRect(30, 30, w-60, h-60);
+                    }
+                },
+            ];
+
+            // Initialize allTemplates with hardcoded ones
+            allTemplates = [...hardcodedTemplates];
+
+
+            // === FUNCTIONS ===
+            const showLoading = (show) => {
+                downloadPngBtn.disabled = show;
+                downloadPdfBtn.disabled = show;
+                downloadAllPdfBtn.disabled = show;
+                if (importExcelBtn) importExcelBtn.disabled = show; // Added null check
+                addLogoUrlBtn.disabled = show;
+                logoUploadInput.disabled = show;
+                resetAllDataBtn.disabled = show;
+                clearTextFieldsBtn.disabled = show;
+                if (fontUploadInput) fontUploadInput.disabled = show; // Added null check for fontUploadInput
+                templateUploadInput.disabled = show;
+                viewFrontBtn.disabled = show; // Disable view buttons during loading
+                viewBackBtn.disabled = show; // Disable view buttons during loading
+            };
+
+            const showModal = (message, showCancel = false) => {
+                return new Promise(resolve => {
+                    modalMessage.textContent = message;
+                    if (showCancel) {
+                        modalCancelBtn.classList.remove('hidden');
+                    } else {
+                        modalCancelBtn.classList.add('hidden');
+                    }
+                    customModalOverlay.classList.remove('hidden');
+
+                    const handleOk = () => {
+                        customModalOverlay.classList.add('hidden');
+                        modalOkBtn.removeEventListener('click', handleOk);
+                        modalCancelBtn.removeEventListener('click', handleCancel);
+                        resolve(true);
+                    };
+
+                    const handleCancel = () => {
+                        customModalOverlay.classList.add('hidden');
+                        modalOkBtn.removeEventListener('click', handleOk);
+                        modalCancelBtn.removeEventListener('click', handleCancel);
+                        resolve(false);
+                    };
+
+                    modalOkBtn.addEventListener('click', handleOk);
+                    modalCancelBtn.addEventListener('click', handleCancel);
+                });
+            };
+            
+            const drawTemplateBackground = (id) => {
+                const w = canvas.width;
+                const h = canvas.height;
+                ctx.clearRect(0, 0, w, h);
+
+                const template = allTemplates.find(t => t.id === id);
+                if (template && template.draw) {
+                    template.draw(ctx, w, h);
+
+                    // Apply default colors from template definition ONLY IF NOT CUSTOMIZED by user
+                    const applyDefaultColor = (elementId, defaultColor) => {
+                        const el = draggableElements.find(e => e.id === elementId);
+                        if (el && !el.isColorCustomized) {
+                            el.color = defaultColor;
+                        }
+                    };
+                    
+                    // Specific color for recipientName
+                    applyDefaultColor('recipientName', template.initialRecipientNameColor || '#0d3d75');
+
+                    // Header color
+                    applyDefaultColor('headerCertificateText', template.initialHeaderColor || '#333333');
+
+                    // General body text color (subtitle, description, issuer, date etc.)
+                    // Check if initialBodyColor is defined, otherwise use a fallback based on header color
+                    const defaultBodyColor = template.initialBodyColor || (template.initialHeaderColor === '#FFFFFF' ? '#E0E0E0' : '#555555');
+                    ['subtitle', 'description', 'issuer', 'issuerTitle', 'issuerNip', 'issuer2', 'issuerTitle2', 'issuerNip2', 'date', 'dateLabel', 'recipientJabatan', 'recipientNip', 'recipientNuptk'].forEach(elementId => {
+                        applyDefaultColor(elementId, defaultBodyColor);
+                    });
+
+                    // For back of certificate, use a default color if not customized
+                    ['backHeader', 'backMateriTitle', 'backMateri', 'backNarasumberTitle', 'backNarasumber', 'backJamTitle', 'backJam'].forEach(elementId => {
+                        const el = draggableElements.find(e => e.id === elementId);
+                        if (el && !el.isColorCustomized) {
+                            el.color = '#333333'; // Default dark color for back
+                        }
+                    });
+                } else if (currentView === 'back') {
+                    // Simple white background for the back if no specific template draw function
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.strokeStyle = '#e0e0e0';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(15, 15, w - 30, h - 30);
+                }
+            };
+            
+            // Function to draw certificate elements
+            // The `recipientData` parameter allows drawing for a specific recipient without changing `currentRecipientIndex`
+            const drawCertificate = (recipientData = null) => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (isCustomImageLoaded && templateImage.complete) {
+                    const ratio = templateImage.naturalWidth / templateImage.naturalHeight;
+                    canvas.width = 1123;
+                    canvas.height = canvas.width / ratio;
+                    ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
+                } else {
+                    canvas.width = 1123;
+                    canvas.height = 794;
+                    drawTemplateBackground(currentTemplateId);
+                }
+                
+                const displayRecipient = recipientData || recipients[currentRecipientIndex] || { name: 'Nama Penerima Contoh', jabatan: 'Jabatan Contoh', nip: 'NIP Contoh', nuptk: 'NUPTK Contoh' };
+
+                // Update content of draggable text elements from corresponding textFields inputs
+                draggableElements.filter(el => el.type === 'text').forEach(el => {
+                    if (el.view === 'front') {
+                        if (el.id === 'recipientName') el.content = displayRecipient.name;
+                        else if (el.id === 'recipientJabatan') el.content = displayRecipient.jabatan;
+                        else if (el.id === 'recipientNip') el.content = displayRecipient.nip;
+                        else if (el.id === 'recipientNuptk') el.content = displayRecipient.nuptk;
+                        else if (textFields[el.id]) { // For other text fields, get content from inputs
+                            el.content = textFields[el.id].value;
+                        }
+                    } else if (el.view === 'back') { // NEW: Update content for back elements
+                        if (backTextFields[el.id]) {
+                            el.content = backTextFields[el.id].value;
+                        }
+                    }
+                });
+
+                // Find recipientName element to base dynamic positioning on its Y
+                const recipientNameEl = draggableElements.find(el => el.id === 'recipientName');
+                // The current Y position for dynamic text flow, starting from recipientName's stored Y
+                let dynamicBlockCurrentY = recipientNameEl ? recipientNameEl.y : 0; 
+
+                draggableElements.forEach(el => {
+                    // Only draw elements for the current view or 'both'
+                    el.isCurrentlyVisible = (el.view === currentView || el.view === 'both');
+
+                    el.calculatedX = el.x;
+                    el.calculatedY = el.y;
+                    el.calculatedWidth = el.width || 0;
+                    el.calculatedHeight = el.height || 0;
+
+                    if (el.type === 'text') {
+                        ctx.font = `${el.fontStyle} ${el.fontSize}px "${el.fontFamily}"`;
+                        
+                        let textMetrics = ctx.measureText(el.content);
+                        let contentWidth = textMetrics.width;
+                        let contentHeight = el.fontSize * el.lineHeightMultiplier;
+                        
+                        // Special handling for multi-line text (description, materi, narasumber)
+                        if ((el.id === 'description' || el.id === 'backMateri' || el.id === 'backNarasumber') && el.content.trim() !== '') {
+                            const words = el.content.split(' ');
+                            let lineCount = 1;
+                            let currentLine = '';
+                            for (let n = 0; n < words.length; n++) {
+                                const testLine = currentLine + words[n] + ' ';
+                                const metricsWrapped = ctx.measureText(testLine);
+                                if (metricsWrapped.width > el.maxWidth && n > 0) {
+                                    lineCount++;
+                                    currentLine = words[n] + ' ';
+                                } else {
+                                    currentLine = testLine;
+                                }
+                            }
+                            contentHeight = lineCount * el.fontSize * el.lineHeightMultiplier;
+                            contentWidth = el.maxWidth; // Use max width for calculated width
+                        }
+
+                        // Dynamic positioning for recipient details (front)
+                        if (el.view === 'front' && !el.isPositionCustomized && ['recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(el.id)) {
+                            const hasContent = el.content.trim() !== '';
+
+                            if (hasContent) {
+                                let spacing = 0;
+                                if (el.id === 'description') spacing = 10;
+                                
+                                el.calculatedY = dynamicBlockCurrentY + spacing;
+                                dynamicBlockCurrentY = el.calculatedY + contentHeight;
+                            } else {
+                                el.calculatedY = dynamicBlockCurrentY;
+                                el.isCurrentlyVisible = false; // Hide if no content and not custom positioned
+                            }
+                        } else if (el.view === 'front' && el.isPositionCustomized && ['recipientName', 'recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(el.id)) {
+                            el.calculatedY = el.y; 
+                            if (el.content.trim() !== '') {
+                                dynamicBlockCurrentY = el.calculatedY + contentHeight;
+                            } else {
+                                dynamicBlockCurrentY = el.calculatedY;
+                                el.isCurrentlyVisible = false; // Hide if no content and custom positioned
+                            }
+                        } else if (el.id === 'recipientName' && el.view === 'front') {
+                            el.calculatedY = el.y; 
+                            if (el.content.trim() !== '') {
+                                dynamicBlockCurrentY = el.calculatedY + contentHeight;
+                            } else {
+                                dynamicBlockCurrentY = el.calculatedY;
+                                el.isCurrentlyVisible = false; // Hide if no content
+                            }
+                        }
+
+                        el.calculatedWidth = contentWidth;
+                        el.calculatedHeight = contentHeight;
+
+                        el.calculatedX = el.x; 
+                        if (el.textAlign === 'center') {
+                            el.calculatedX -= el.calculatedWidth / 2;
+                        } else if (el.textAlign === 'right') {
+                            el.calculatedX -= el.calculatedWidth;
+                        }
+
+                        let adjustedCalculatedYForBaseline = el.calculatedY;
+                        if (el.textBaseline === 'alphabetic') {
+                            adjustedCalculatedYForBaseline -= (el.fontSize * 0.75);
+                        } else if (el.textBaseline === 'middle') {
+                            adjustedCalculatedYForBaseline -= (el.calculatedHeight / 2);
+                        } else if (el.textBaseline === 'bottom') {
+                            adjustedCalculatedYForBaseline -= el.calculatedHeight;
+                        }
+                        el.calculatedY = adjustedCalculatedYForBaseline;
+
+                    }
+                });
+
+                draggableElements.forEach(el => {
+                    if (!el.isCurrentlyVisible) return; // Skip drawing if not visible in current view or no content
+
+                    if (el.type === 'image' && el.image && el.image.complete) {
+                        ctx.drawImage(el.image, el.x, el.y, el.width, el.height);
+                        if (selectedDraggableElement && selectedDraggableElement.id === el.id && !isDownloading) {
+                            ctx.strokeStyle = '#1d4ed8';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([5, 5]);
+                            ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
+                            ctx.setLineDash([]);
+                        }
+                    } else if (el.type === 'text') {
+                        ctx.font = `${el.fontStyle} ${el.fontSize}px "${el.fontFamily}"`;
+                        ctx.fillStyle = el.color;
+                        ctx.textAlign = el.textAlign;
+                        ctx.textBaseline = el.textBaseline;
+
+                        let drawYForText = el.calculatedY;
+                        if (el.textBaseline === 'alphabetic') {
+                            drawYForText += (el.fontSize * 0.75);
+                        } else if (el.textBaseline === 'middle') {
+                            drawYForText += (el.calculatedHeight / 2);
+                        } else if (el.textBaseline === 'bottom') {
+                            drawYForText += el.calculatedHeight;
+                        }
+                        
+                        if (el.id === 'description' || el.id === 'backMateri' || el.id === 'backNarasumber') {
+                            wrapText(ctx, el.content, el.x, drawYForText, el.maxWidth, el.fontSize * el.lineHeightMultiplier);
+                        } else {
+                            ctx.fillText(el.content, el.x, drawYForText);
+                        }
+
+                        if (selectedDraggableElement && selectedDraggableElement.id === el.id && !isDownloading) {
+                            ctx.strokeStyle = '#1d4ed8';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([5, 5]);
+                            ctx.strokeRect(el.calculatedX - 5, el.calculatedY - 5, el.calculatedWidth + 10, el.calculatedHeight + 10);
+                            ctx.setLineDash([]);
+                        }
+
+                        if ((el.id === 'issuer' || el.id === 'issuer2' || el.id === 'recipientName') && el.content.trim() !== '') {
+                            const textWidth = ctx.measureText(el.content).width;
+                            const lineY = drawYForText + (el.textBaseline === 'alphabetic' ? (el.fontSize * 0.1) : 0);
+                            ctx.beginPath();
+                            ctx.moveTo(el.x - textWidth / 2, lineY);
+                            ctx.lineTo(el.x + textWidth / 2, lineY);
+                            ctx.lineWidth = 1;
+                            ctx.strokeStyle = el.color; // Use element's color for the line
+                            ctx.stroke();
+                        }
+                    }
+                });
+                if (!recipientData) { // Only update UI if not drawing for bulk download
+                    updateUI();
+                }
+            };
+
+            const wrapText = (context, text, x, y, maxWidth, lineHeight) => {
+                const words = text.split(' ');
+                let line = '';
+                let currentY = y;
+                for(let n = 0; n < words.length; n++) {
+                    const testLine = line + words[n] + ' ';
+                    const metrics = context.measureText(testLine);
+                    const testWidth = metrics.width;
+                    if (testWidth > maxWidth && n > 0) {
+                        context.fillText(line, x, currentY);
+                        line = words[n] + ' ';
+                        currentY += lineHeight;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                context.fillText(line, x, currentY);
+            };
+
+            const renderRecipientTable = () => {
+                if (!recipientTableBody) { // Added null check
+                    console.error("Error: recipientTableBody element not found.");
+                    return;
+                }
+                recipientTableBody.innerHTML = '';
+                if (recipients.length === 0) {
+                    recipientTableBody.innerHTML = `<tr class="placeholder-row"><td colspan="5" class="text-center p-4 text-gray-400">Belum ada data penerima.</td></tr>`;
+                    return;
+                }
+                recipients.forEach((recipient, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'bg-white border-b hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">${recipient.name}</td>
+                        <td class="px-4 py-2">${recipient.jabatan || '-'}</td>
+                        <td class="px-4 py-2">${recipient.nip || '-'}</td>
+                        <td class="px-4 py-2">${recipient.nuptk || '-'}</td>
+                        <td class="px-4 py-2 text-center">
+                            <button class="edit-btn text-blue-600 hover:text-blue-800" data-index="${index}" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                            <button class="delete-btn text-red-600 hover:text-red-800 ml-3" data-index="${index}" title="Hapus"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    `;
+                    recipientTableBody.appendChild(row);
+                });
+                document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', handleEdit));
+                document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', handleDelete));
+            };
+
+            const renderLogoThumbnails = () => {
+                logoListContainer.innerHTML = '';
+                const imageElements = draggableElements.filter(el => el.type === 'image');
+                if (imageElements.length === 0) {
+                    noLogosMessage.classList.remove('hidden');
+                    logoListContainer.appendChild(noLogosMessage);
+                    return;
+                }
+                noLogosMessage.classList.add('hidden');
+
+                imageElements.forEach(logo => {
+                    const logoWrapper = document.createElement('div');
+                    logoWrapper.className = 'relative group';
+                    logoWrapper.innerHTML = `
+                        <img src="${logo.src}" alt="Logo" class="logo-thumbnail">
+                        <button class="absolute top-0 right-0 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity delete-logo-btn" data-id="${logo.id}" title="Hapus Logo">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    logoListContainer.appendChild(logoWrapper);
+                });
+
+                document.querySelectorAll('.delete-logo-btn').forEach(btn => {
+                    btn.addEventListener('click', handleDeleteLogo);
+                });
+            };
+
+            const renderTemplateThumbnails = () => {
+                templateThumbnailsContainer.innerHTML = '';
+                allTemplates.forEach(template => {
+                    const templateDiv = document.createElement('div');
+                    templateDiv.className = `template-thumbnail ${template.id === currentTemplateId ? 'selected' : ''}`;
+                    templateDiv.dataset.templateId = template.id;
+                    
+                    let styleAttr = '';
+                    switch(template.id) {
+                        case 'professional': styleAttr = 'background: linear-gradient(45deg, #0a2e5c, #1a4a8a);'; break;
+                        case 'modern': styleAttr = 'background: linear-gradient(45deg, #4f46e5, #c026d3);'; break;
+                        case 'formal': styleAttr = 'background-color: #f5f5f5; border: 1px solid #ddd'; break;
+                    }
+                    templateDiv.setAttribute('style', styleAttr);
+                    templateDiv.innerHTML = `<div class="overlay" style="color: ${template.initialHeaderColor || '#333'}">${template.name}</div>`;
+                    templateThumbnailsContainer.appendChild(templateDiv);
+                });
+
+                document.querySelectorAll('.template-thumbnail').forEach(div => {
+                    div.addEventListener('click', () => selectProvidedTemplate(div.dataset.templateId));
+                });
+            };
+
+            const updateUI = () => {
+                const hasRecipients = recipients.length > 0;
+                if (hasRecipients) {
+                    previewIndicator.textContent = `Penerima ${currentRecipientIndex + 1} / ${recipients.length}`;
+                } else {
+                    previewIndicator.textContent = 'Penerima 0 / 0';
+                }
+                prevBtn.disabled = !hasRecipients || currentRecipientIndex <= 0;
+                nextBtn.disabled = !hasRecipients || currentRecipientIndex >= recipients.length - 1;
+                downloadPngBtn.disabled = !hasRecipients;
+                downloadPdfBtn.disabled = !hasRecipients;
+                downloadAllPdfBtn.disabled = !hasRecipients;
+                
+                // Update view buttons active state
+                viewFrontBtn.classList.toggle('active', currentView === 'front');
+                viewBackBtn.classList.toggle('active', currentView === 'back');
+            };
+
+            const updateSidebarControls = () => {
+                if (selectedDraggableElement) {
+                    if (elementSelectionHint) elementSelectionHint.classList.add('hidden'); // Added null check
+                    if (selectedDraggableElement.type === 'text') {
+                        if (fontControlsDiv) fontControlsDiv.classList.remove('hidden'); // Added null check
+                        if (imageControlsDiv) imageControlsDiv.classList.add('hidden'); // Added null check
+                        if (fontSizeInput) fontSizeInput.value = selectedDraggableElement.fontSize; // Added null check
+                        if (fontWeightBold) fontWeightBold.checked = selectedDraggableElement.fontStyle === 'bold'; // Added null check
+                        if (fontFamilySelect) fontFamilySelect.value = selectedDraggableElement.fontFamily.replace(/"/g, ''); // Added null check
+                        if (textColorInput) textColorInput.value = selectedDraggableElement.color; // Added null check
+                        if (textAlignSelect) textAlignSelect.value = selectedDraggableElement.textAlign; // Added null check
+                    } else if (selectedDraggableElement.type === 'image') {
+                        if (fontControlsDiv) fontControlsDiv.classList.add('hidden'); // Added null check
+                        if (imageControlsDiv) imageControlsDiv.classList.remove('hidden'); // Added null check
+                        if (imageWidthInput) imageWidthInput.value = selectedDraggableElement.width; // Added null check
+                        if (imageHeightInput) imageHeightInput.value = selectedDraggableElement.height; // Added null check
+                    }
+                } else {
+                    if (elementSelectionHint) elementSelectionHint.classList.remove('hidden'); // Added null check
+                    if (fontControlsDiv) fontControlsDiv.classList.add('hidden'); // Added null check
+                    if (imageControlsDiv) imageControlsDiv.classList.add('hidden'); // Added null check
+                }
+            };
+
+            const selectProvidedTemplate = (id) => {
+                currentTemplateId = id;
+                isCustomImageLoaded = false;
+                renderTemplateThumbnails(); // Re-render to update 'selected' class
+                drawCertificate();
+                saveState();
+            }
+
+            const selectCustomTemplateImage = (url) => {
+                showLoading(true);
+                templateImage.src = url;
+            };
+            
+            // === LOCAL STORAGE FUNCTIONS ===
+            const saveState = () => {
+                const appStateToSave = {
+                    textFields: {},
+                    backTextFields: {}, // NEW: Save back text fields
+                    recipients: [...recipients],
+                    draggableElements: draggableElements.map(el => {
+                        const savedEl = {
+                            id: el.id,
+                            type: el.type,
+                            x: el.x,
+                            y: el.y,
+                            isPositionCustomized: el.isPositionCustomized || false,
+                            view: el.view || 'front' // Save view property
+                        };
+                        if (el.type === 'image') {
+                            savedEl.width = el.width;
+                            savedEl.height = el.height;
+                            savedEl.src = el.image ? el.image.src : el.src;
+                        } else { // type === 'text'
+                            savedEl.content = el.content;
+                            savedEl.fontSize = el.fontSize;
+                            savedEl.fontStyle = el.fontStyle;
+                            savedEl.fontFamily = el.fontFamily;
+                            savedEl.color = el.color;
+                            savedEl.textAlign = el.textAlign;
+                            savedEl.textBaseline = el.textBaseline;
+                            savedEl.maxWidth = el.maxWidth;
+                            savedEl.lineHeightMultiplier = el.lineHeightMultiplier;
+                            savedEl.isColorCustomized = el.isColorCustomized || false;
+                            savedEl.isFontFamilyCustomized = el.isFontFamilyCustomized || false;
+                            savedEl.isFontSizeCustomized = el.isFontSizeCustomized || false;
+                            savedEl.isAlignCustomized = el.isAlignCustomized || false;
+                        }
+                        return savedEl;
+                    }),
+                    currentRecipientIndex: currentRecipientIndex,
+                    currentTemplateId: currentTemplateId,
+                    customTemplateImageSrc: isCustomImageLoaded ? templateImage.src : null,
+                    isCustomImageLoaded: isCustomImageLoaded,
+                    currentView: currentView // NEW: Save current view
+                };
+
+                for (const key in textFields) {
+                    if (textFields.hasOwnProperty(key) && textFields[key]) { // Added null check
+                        appStateToSave.textFields[key] = textFields[key].value;
+                    }
+                }
+                for (const key in backTextFields) { // NEW: Save back text fields content
+                    if (backTextFields.hasOwnProperty(key) && backTextFields[key]) { // Added null check
+                        appStateToSave.backTextFields[key] = backTextFields[key].value;
+                    }
+                }
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appStateToSave));
+                console.log("State saved.");
+            };
+
+            const loadState = async () => {
+                const savedStateString = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (!savedStateString) {
+                    console.log("No saved state found, initializing default.");
+                    initializeDefaultState();
+                    return;
+                }
+
+                try {
+                    const savedState = JSON.parse(savedStateString);
+                    console.log("Loaded state:", savedState);
+
+                    // Re-initialize allTemplates with hardcoded ones only
+                    allTemplates = [...hardcodedTemplates]; 
+
+                    for (const key in textFields) {
+                        if (textFields.hasOwnProperty(key) && savedState.textFields && savedState.textFields[key] !== undefined && textFields[key]) { // Added null check
+                            textFields[key].value = savedState.textFields[key];
+                        }
+                    }
+                    // NEW: Load back text fields content
+                    for (const key in backTextFields) {
+                        if (backTextFields.hasOwnProperty(key) && savedState.backTextFields && savedState.backTextFields[key] !== undefined && backTextFields[key]) { // Added null check
+                            backTextFields[key].value = savedState.backTextFields[key];
+                        }
+                    }
+
+                    recipients = savedState.recipients || [];
+                    
+                    draggableElements = [];
+                    const imageLoadPromises = [];
+                    let maxLogoId = -1;
+
+                    const defaultElMap = new Map(defaultDraggableTextElements.map(el => [el.id, el]));
+
+                    if (savedState.draggableElements) {
+                        savedState.draggableElements.forEach(savedEl => {
+                            if (savedEl.type === 'image') {
+                                const img = new Image();
+                                img.crossOrigin = "Anonymous";
+                                const imgPromise = new Promise((resolve, reject) => {
+                                    img.onload = () => {
+                                        draggableElements.push({
+                                            ...savedEl,
+                                            image: img,
+                                            calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
+                                        });
+                                        resolve();
+                                    };
+                                    img.onerror = () => {
+                                        console.error(`Failed to load image from ${savedEl.src}`);
+                                        draggableElements.push({ 
+                                            ...savedEl, 
+                                            image: null, 
+                                            loaded: false,
+                                            calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
+                                        });
+                                        resolve();
+                                    };
+                                    img.src = savedEl.src;
+                                });
+                                imageLoadPromises.push(imgPromise);
+                                const logoNum = parseInt(savedEl.id.split('-')[1]);
+                                if (!isNaN(logoNum)) {
+                                    maxLogoId = Math.max(maxLogoId, logoNum);
+                                }
+                            } else {
+                                const defaultProps = defaultElMap.get(savedEl.id) || {};
+                                draggableElements.push({
+                                    ...defaultProps,
+                                    ...savedEl,
+                                    calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
+                                });
+                            }
+                        });
+                    }
+
+                    // Ensure all default elements are present, adding any missing ones
+                    defaultDraggableTextElements.forEach(defaultEl => {
+                        const existingEl = draggableElements.find(el => el.id === defaultEl.id);
+                        if (!existingEl) {
+                            let contentToUse = defaultEl.content;
+                            if (defaultEl.view === 'front' && textFields[defaultEl.id]) {
+                                contentToUse = textFields[defaultEl.id].value;
+                            } else if (defaultEl.view === 'back' && backTextFields[defaultEl.id]) {
+                                contentToUse = backTextFields[defaultEl.id].value;
+                            }
+                            draggableElements.push({ ...defaultEl, content: contentToUse });
+                        }
+                    });
+                    
+                    nextLogoId = maxLogoId + 1;
+
+                    currentRecipientIndex = savedState.currentRecipientIndex !== undefined ? savedState.currentRecipientIndex : -1;
+                    currentTemplateId = savedState.currentTemplateId || 'professional';
+                    isCustomImageLoaded = savedState.isCustomImageLoaded || false;
+                    currentView = savedState.currentView || 'front'; // NEW: Load current view
+
+                    if (isCustomImageLoaded && savedState.customTemplateImageSrc) {
+                        const templateImagePromise = new Promise((resolve, reject) => {
+                            templateImage.onload = () => { resolve(); };
+                            templateImage.onerror = () => {
+                                console.error("Failed to load custom template image from saved state.");
+                                isCustomImageLoaded = false;
+                                selectProvidedTemplate(currentTemplateId);
+                                resolve();
+                            };
+                            templateImage.src = savedState.customTemplateImageSrc;
+                        });
+                        imageLoadPromises.push(templateImagePromise);
+                    } else {
+                        selectProvidedTemplate(currentTemplateId);
+                    }
+
+                    await Promise.all(imageLoadPromises);
+
+                    renderRecipientTable();
+                    renderLogoThumbnails();
+                    renderTemplateThumbnails(); // Render thumbnails AFTER allTemplates might have been updated
+                    drawCertificate();
+                    updateUI();
+                    updateSidebarControls();
+
+                }
+                catch (error) {
+                    console.error("Error loading state from localStorage:", error);
+                    await showModal("Terjadi kesalahan saat memuat data tersimpan. Aplikasi akan diatur ulang.");
+                    initializeDefaultState();
+                }
+            };
+
+            const initializeDefaultState = () => {
+                if (textFields.title) textFields.title.value = "Sertifikat Penghargaan";
+                if (textFields.subtitle) textFields.subtitle.value = "DIBERIKAN KEPADA";
+                if (textFields.description) textFields.description.value = "Atas partisipasi dan kontribusi luar biasa dalam Workshop Pengembangan Aplikasi Web Interaktif.";
+                if (textFields.headerCertificateText) textFields.headerCertificateText.value = "SERTIFIKAT";
+                if (textFields.issuer) textFields.issuer.value = "Sugandi,S.Kom";
+                if (textFields.issuerTitle) textFields.issuerTitle.value = "Direktur Program";
+                if (textFields.issuerNip) textFields.issuerNip.value = "1994xxxxxxxxxx1001";
+                if (textFields.issuer2) textFields.issuer2.value = "Prof. Siti Aminah";
+                if (textFields.issuerTitle2) textFields.issuerTitle2.value = "Kepala Departemen";
+                if (textFields.issuerNip2) textFields.issuerNip2.value = "198005152005022002";
+                if (textFields.date) textFields.date.value = "27 Juni 2025";
+
+                // NEW: Default values for back text fields
+                if (backTextFields.materi) backTextFields.materi.value = "- Pengenalan HTML & CSS (09:00 - 10:30)\n- JavaScript Dasar (10:45 - 12:00)\n- Studi Kasus Proyek (13:00 - 14:30)";
+                if (backTextFields.narasumber) backTextFields.narasumber.value = "- Budi Santoso, S.T., M.Kom\n- Dr. Indah Permata, M.Eng";
+                if (backTextFields.jam) backTextFields.jam.value = "09:00 - 16:00 WIB";
+
+                // Added null checks for recipient input fields
+                if (recipientNameInput) recipientNameInput.value = '';
+                if (recipientJabatanInput) recipientJabatanInput.value = '';
+                if (recipientNipInput) recipientNipInput.value = '';
+                if (recipientNuptkInput) recipientNuptkInput.value = '';
+                if (editingIndexInput) editingIndexInput.value = '';
+
+                recipients = [];
+                currentRecipientIndex = -1;
+                currentTemplateId = 'professional';
+                isCustomImageLoaded = false;
+                templateImage.src = '';
+                nextLogoId = 0;
+                currentView = 'front'; // NEW: Reset view to front
+
+                draggableElements = defaultDraggableTextElements.map(el => ({
+                    ...el,
+                    isColorCustomized: false,
+                    isFontFamilyCustomized: false,
+                    isFontSizeCustomized: false,
+                    isAlignCustomized: false,
+                    isPositionCustomized: false,
+                    calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
+                }));
+                
+                draggableElements.filter(el => el.type === 'text').forEach(el => {
+                    if (el.view === 'front') {
+                        if (el.id === 'recipientName') {
+                            el.content = 'Nama Penerima Contoh';
+                        } else if (el.id === 'recipientJabatan') { // Added back recipient fields
+                            el.content = 'Jabatan Contoh';
+                        } else if (el.id === 'recipientNip') {
+                            el.content = 'NIP Contoh';
+                        } else if (el.id === 'recipientNuptk') {
+                            el.content = 'NUPTK Contoh';
+                        } else if (textFields[el.id]) {
+                            el.content = textFields[el.id].value;
+                        }
+                        
+                        if (el.id === 'title') {
+                            el.x = canvas.width / 2;
+                            el.y = 100;
+                            el.textAlign = 'center';
+                            el.fontFamily = 'Playfair Display';
+                            el.fontSize = 70;
+                            el.fontStyle = 'bold';
+                        } else if (el.id === 'headerCertificateText') {
+                            el.x = canvas.width / 2;
+                            el.y = 75;
+                            el.textAlign = 'center';
+                            el.fontFamily = 'Inter';
+                            el.fontSize = 50;
+                            el.fontStyle = 'bold';
+                        }
+                    } else if (el.view === 'back') { // NEW: Set content for back elements
+                        if (backTextFields[el.id]) {
+                            el.content = backTextFields[el.id].value;
+                        }
+                    }
+                });
+                
+                allTemplates = [...hardcodedTemplates]; // Reset allTemplates to only hardcoded ones
+
+                selectProvidedTemplate(currentTemplateId);
+                renderRecipientTable();
+                renderLogoThumbnails();
+                renderTemplateThumbnails(); // Initial render of template thumbnails
+                updateUI();
+                updateSidebarControls();
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                saveState();
+            };
+
+            const resetAllData = async () => {
+                const confirmReset = await showModal('Anda yakin ingin mereset semua data? Ini akan menghapus semua penerima, logo, dan pengaturan sertifikat.', true);
+                if (confirmReset) {
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    initializeDefaultState();
+                    drawCertificate();
+                    await showModal('Semua data berhasil direset.');
+                }
+            };
+
+            const clearAllTextFields = async () => {
+                const confirmClear = await showModal('Anda yakin ingin mengosongkan semua bidang input teks?', true);
+                if (confirmClear) {
+                    for (const key in textFields) {
+                        if (textFields.hasOwnProperty(key) && textFields[key]) { // Added null check
+                            textFields[key].value = '';
+                            const draggableElement = draggableElements.find(el => el.id === key);
+                            if (draggableElement) {
+                                draggableElement.content = '';
+                            }
+                        }
+                    }
+                    // NEW: Clear back text fields
+                    for (const key in backTextFields) {
+                        if (backTextFields.hasOwnProperty(key) && backTextFields[key]) { // Added null check
+                            backTextFields[key].value = '';
+                            const draggableElement = draggableElements.find(el => el.id === key);
+                            if (draggableElement) {
+                                draggableElement.content = '';
+                            }
+                        }
+                    }
+                    drawCertificate();
+                    saveState();
+                    await showModal('Semua bidang input teks berhasil dikosongkan.');
+                }
+            };
+
+
+            // === EVENT HANDLERS ===
+            templateImage.onload = () => {
+                isCustomImageLoaded = true;
+                currentTemplateId = null; // No provided template selected when custom image is used
+                renderTemplateThumbnails(); // Re-render to clear selected class from old template
+                drawCertificate();
+                showLoading(false);
+                saveState();
+            };
+            templateImage.onerror = async () => {
+                isCustomImageLoaded = false;
+                selectProvidedTemplate(currentTemplateId);
+                showLoading(false);
+                await showModal('Gagal memuat gambar template. Pastikan URL benar dan gambar dapat diakses (CORS diizinkan).'); 
+                saveState();
+            };
+
+            function switchTab(group, activeId, contents) {
+                for (const id in group) {
+                    // Check if the element exists before toggling classes
+                    if (group[id]) {
+                        group[id].classList.toggle('active', id === activeId);
+                    }
+                    if (contents[id]) { // This is where contents[id] might be null
+                        contents[id].classList.toggle('hidden', id !== activeId);
+                    }
+                }
+            }
+            
+            if (templateTabs.provided) templateTabs.provided.addEventListener('click', () => switchTab(templateTabs, 'provided', templateContents)); // Added null check
+            if (templateTabs.upload) templateTabs.upload.addEventListener('click', () => switchTab(templateTabs, 'upload', templateContents)); // Added null check
+            
+            // Re-added event listeners for dataTabs as their HTML elements are now present.
+            if (dataTabs.manual) {
+                dataTabs.manual.addEventListener('click', () => switchTab(dataTabs, 'manual', dataContents));
+            }
+
+            if (dataTabs.excel) {
+                dataTabs.excel.addEventListener('click', () => switchTab(dataTabs, 'excel', dataContents));
+            }
+
+            // Template thumbnail click listeners are now attached dynamically in renderTemplateThumbnails
+
+            if (templateUploadInput) { // Added null check
+                templateUploadInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => selectCustomTemplateImage(event.target.result);
+                        reader.onerror = async () => await showModal('Gagal membaca file lokal.');
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // Event listeners for front text fields
+            Object.keys(textFields).forEach(fieldId => {
+                // The recipientName, Jabatan, Nip, Nuptk are handled by the recipient input fields, not these general text fields.
+                if (!['recipientName', 'recipientJabatan', 'recipientNip', 'recipientNuptk'].includes(fieldId)) {
+                    if (textFields[fieldId]) { // Ensure the text field element actually exists
+                        textFields[fieldId].addEventListener('input', (event) => {
+                            const draggableElement = draggableElements.find(el => el.id === fieldId);
+                            if (draggableElement) {
+                                draggableElement.content = event.target.value;
+                                drawCertificate();
+                                saveState();
+                            }
+                        });
+                    }
+                }
+            });
+
+            // NEW: Event listeners for back text fields
+            Object.keys(backTextFields).forEach(fieldId => {
+                if (backTextFields[fieldId]) { // Ensure the back text field element actually exists
+                    backTextFields[fieldId].addEventListener('input', (event) => {
+                        const draggableElement = draggableElements.find(el => el.id === fieldId);
+                        if (draggableElement) {
+                            draggableElement.content = event.target.value;
+                            drawCertificate();
+                            saveState();
+                        }
+                    });
+                }
+            });
+
+
+            if (fontSizeInput) { // Added null check
+                fontSizeInput.addEventListener('input', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'text') {
+                        selectedDraggableElement.fontSize = parseInt(e.target.value);
+                        selectedDraggableElement.isFontSizeCustomized = true;
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (fontWeightBold) { // Added null check
+                fontWeightBold.addEventListener('change', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'text') {
+                        selectedDraggableElement.fontStyle = e.target.checked ? 'bold' : 'normal';
+                        selectedDraggableElement.isFontFamilyCustomized = true;
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (fontFamilySelect) { // Added null check
+                fontFamilySelect.addEventListener('change', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'text') {
+                        selectedDraggableElement.fontFamily = e.target.value;
+                        selectedDraggableElement.isFontFamilyCustomized = true;
+
+                        requestAnimationFrame(() => {
+                            drawCertificate();
+                            saveState();
+                        });
+                    }
+                });
+            }
+
+            if (textColorInput) { // Added null check
+                textColorInput.addEventListener('input', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'text') {
+                        selectedDraggableElement.color = e.target.value;
+                        selectedDraggableElement.isColorCustomized = true;
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (textAlignSelect) { // Added null check
+                textAlignSelect.addEventListener('change', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'text') {
+                        selectedDraggableElement.textAlign = e.target.value;
+                        selectedDraggableElement.isAlignCustomized = true;
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (fontUploadInput) { // Added null check
+                fontUploadInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const fileNameWithoutExt = file.name.split('.').slice(0, -1).join('.');
+                        const fontName = `CustomFont_${fileNameWithoutExt.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        
+                        showLoading(true);
+                        try {
+                            if (Array.from(fontFamilySelect.options).some(option => option.value === fontName)) {
+                                await showModal(`Font '${fontName}' sudah dimuat.`);
+                                showLoading(false);
+                                return;
+                            }
+
+                            const font = new FontFace(fontName, `url(${URL.createObjectURL(file)})`);
+                            await font.load();
+                            document.fonts.add(font);
+
+                            const option = document.createElement('option');
+                            option.value = fontName;
+                            option.textContent = `${fileNameWithoutExt} (Custom)`;
+                            fontFamilySelect.appendChild(option);
+
+                            fontFamilySelect.value = fontName;
+                            if (selectedDraggableElement && selectedDraggableElement.type === 'text') {
+                                selectedDraggableElement.fontFamily = fontName;
+                                selectedDraggableElement.isFontFamilyCustomized = true;
+                                requestAnimationFrame(() => {
+                                    drawCertificate();
+                                    saveState();
+                                });
+                            } else {
+                                drawCertificate();
+                                saveState();
+                            }
+                            await showModal(`Font '${fileNameWithoutExt}' berhasil dimuat dan tersedia di daftar pilihan!`);
+                        } catch (error) {
+                            console.error('Error loading custom font:', error);
+                            await showModal(`Gagal memuat font: ${error.message}. Pastikan file font valid.`);
+                        } finally {
+                            showLoading(false);
+                            fontUploadInput.value = '';
+                        }
+                    }
+                });
+            }
+
+            if (imageWidthInput) { // Added null check
+                imageWidthInput.addEventListener('input', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'image') {
+                        selectedDraggableElement.width = parseInt(e.target.value);
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (imageHeightInput) { // Added null check
+                imageHeightInput.addEventListener('input', (e) => {
+                    if (selectedDraggableElement && selectedDraggableElement.type === 'image') {
+                        selectedDraggableElement.height = parseInt(e.target.value);
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (addRecipientBtn) { // Added null check
+                addRecipientBtn.addEventListener('click', async () => {
+                    const name = recipientNameInput.value.trim();
+                    const jabatan = recipientJabatanInput.value.trim();
+                    const nip = recipientNipInput.value.trim();
+                    const nuptk = recipientNuptkInput.value.trim();
+                    const editingIndex = parseInt(editingIndexInput.value, 10);
+
+                    if (!name) {
+                        await showModal('Nama penerima tidak boleh kosong.');
+                        return;
+                    }
+
+                    const newRecipientData = { name, jabatan, nip, nuptk };
+
+                    if (!isNaN(editingIndex) && editingIndex >= 0 && editingIndex < recipients.length) {
+                        recipients[editingIndex] = newRecipientData;
+                        addRecipientBtn.innerHTML = '<i class="fas fa-save"></i> Perbarui Penerima';
+                        addRecipientBtn.classList.replace('bg-green-600', 'bg-yellow-500');
+                        addRecipientBtn.classList.replace('hover:bg-green-700', 'hover:bg-yellow-600');
+                    } else {
+                        recipients.push(newRecipientData);
+                    }
+                    
+                    if (recipientNameInput) recipientNameInput.value = ''; // Added null check
+                    if (recipientJabatanInput) recipientJabatanInput.value = ''; // Added null check
+                    if (recipientNipInput) recipientNipInput.value = ''; // Added null check
+                    if (recipientNuptkInput) recipientNuptkInput.value = ''; // Added null check
+                    if (editingIndexInput) editingIndexInput.value = ''; // Added null check
+                    if (recipientNameInput) recipientNameInput.focus(); // Added null check
+
+                    if (recipients.length === 1) currentRecipientIndex = 0;
+                    renderRecipientTable();
+                    drawCertificate();
+                    saveState();
+                });
+            }
+
+            if (importExcelBtn) { // Added null check
+                importExcelBtn.addEventListener('click', async () => {
+                    const file = excelUploadInput.files[0];
+                    if (!file) {
+                        await showModal('Silakan pilih file Excel terlebih dahulu.');
+                        return;
+                    }
+                    showLoading(true);
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            
+                            const newRecipients = json
+                                .map(row => ({
+                                    name: row[0] ? String(row[0]).trim() : '',
+                                    jabatan: row[1] ? String(row[1]).trim() : '',
+                                    nip: row[2] ? String(row[2]).trim() : '',
+                                    nuptk: row[3] ? String(row[3]).trim() : '',
+                                }))
+                                .filter(recipient => recipient.name !== '');
+                            
+                            if (newRecipients.length === 0) {
+                                await showModal('Tidak ada nama yang valid ditemukan di kolom pertama file Excel. Pastikan kolom A berisi nama.');
+                                showLoading(false);
+                                return;
+                            }
+                            
+                            recipients = newRecipients;
+                            currentRecipientIndex = recipients.length > 0 ? 0 : -1;
+                            renderRecipientTable();
+                            drawCertificate();
+                            await showModal(`${newRecipients.length} nama berhasil diimpor dari Excel.`);
+                            saveState();
+                        } catch (error) {
+                            console.error('Error importing Excel:', error);
+                            await showModal(`Gagal mengimpor file Excel: ${error.message}. Pastikan ini adalah file Excel yang valid dan formatnya benar.`);
+                        } finally {
+                            showLoading(false);
+                        }
+                    };
+                    reader.onerror = async (error) => {
+                        console.error('FileReader error:', error);
+                        await showModal('Gagal membaca file: Terjadi kesalahan.');
+                        showLoading(false);
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            const handleEdit = (event) => {
+                const index = parseInt(event.currentTarget.dataset.index, 10);
+                if (index >= 0 && index < recipients.length) {
+                    const recipientToEdit = recipients[index];
+                    if (recipientNameInput) recipientNameInput.value = recipientToEdit.name;
+                    if (recipientJabatanInput) recipientJabatanInput.value = recipientToEdit.jabatan || '';
+                    if (recipientNipInput) recipientNipInput.value = recipientToEdit.nip || '';
+                    if (recipientNuptkInput) recipientNuptkInput.value = recipientToEdit.nuptk || '';
+                    if (editingIndexInput) editingIndexInput.value = index;
+                    if (addRecipientBtn) {
+                        addRecipientBtn.innerHTML = '<i class="fas fa-save"></i> Perbarui Penerima';
+                        addRecipientBtn.classList.replace('bg-green-600', 'bg-yellow-500');
+                        addRecipientBtn.classList.replace('hover:bg-green-700', 'hover:bg-yellow-600');
+                    }
+                }
+            };
+
+            const handleDelete = async (event) => {
+                const index = parseInt(event.currentTarget.dataset.index, 10);
+                if (index >= 0 && index < recipients.length) {
+                    const confirmDelete = await showModal(`Anda yakin ingin menghapus '${recipients[index].name}'?`, true);
+                    if (confirmDelete) {
+                        recipients.splice(index, 1);
+                        if (currentRecipientIndex >= recipients.length) {
+                            currentRecipientIndex = recipients.length - 1;
+                        }
+                        if (currentRecipientIndex < 0 && recipients.length > 0) {
+                             currentRecipientIndex = 0;
+                        } else if (recipients.length === 0) {
+                             currentRecipientIndex = -1;
+                        }
+
+                        renderRecipientTable();
+                        drawCertificate();
+                        if (editingIndexInput && parseInt(editingIndexInput.value, 10) === index) {
+                            if (recipientNameInput) recipientNameInput.value = '';
+                            if (recipientJabatanInput) recipientJabatanInput.value = '';
+                            if (recipientNipInput) recipientNipInput.value = '';
+                            if (recipientNuptkInput) recipientNuptkInput.value = '';
+                            editingIndexInput.value = '';
+                            if (addRecipientBtn) {
+                                addRecipientBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Tambah ke Daftar';
+                                addRecipientBtn.classList.replace('bg-yellow-500', 'bg-green-600');
+                                addRecipientBtn.classList.replace('hover:bg-yellow-700', 'hover:bg-green-700');
+                            }
+                        }
+                        saveState();
+                    }
+                }
+            };
+
+            const addLogoToCanvas = (src) => {
+                showLoading(true);
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    const newLogo = {
+                        id: `logo-${nextLogoId++}`,
+                        type: 'image',
+                        image: img,
+                        x: 50 + (draggableElements.filter(el => el.type === 'image').length * 110),
+                        y: 50,
+                        width: 100,
+                        height: 100,
+                        src: src,
+                        isPositionCustomized: false,
+                        view: 'both', // Logos visible on both sides
+                        calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true 
+                    };
+                    draggableElements.push(newLogo);
+                    renderLogoThumbnails();
+                    drawCertificate();
+                    showLoading(false);
+                    showModal('Logo berhasil ditambahkan! Anda bisa menggesernya di pratinjau.');
+                    saveState();
+                };
+                img.onerror = async () => {
+                    showLoading(false);
+                    await showModal('Gagal memuat logo. Pastikan URL benar atau file tidak rusak, dan gambar dapat diakses (CORS diizinkan jika dari URL eksternal).');
+                };
+                img.src = src;
+            };
+
+            if (logoUploadInput) { // Added null check
+                logoUploadInput.addEventListener('change', (e) => {
+                    const files = e.target.files;
+                    if (files.length > 0) {
+                        Array.from(files).forEach(file => {
+                            const reader = new FileReader();
+                            reader.onload = (event) => addLogoToCanvas(event.target.result);
+                            reader.onerror = async () => await showModal(`Gagal membaca file: ${file.name}.`);
+                            reader.readAsDataURL(file);
+                        });
+                        logoUploadInput.value = '';
+                    }
+                });
+            }
+
+            if (addLogoUrlBtn) { // Added null check
+                addLogoUrlBtn.addEventListener('click', () => {
+                    const url = logoUrlInput.value.trim();
+                    if (url) {
+                        addLogoToCanvas(url);
+                        if (logoUrlInput) logoUrlInput.value = ''; // Added null check
+                    } else {
+                        showModal('Silakan masukkan URL gambar logo.');
+                    }
+                });
+            }
+
+            const handleDeleteLogo = async (event) => {
+                const logoId = event.currentTarget.dataset.id;
+                const confirmDelete = await showModal(`Anda yakin ingin menghapus logo ini?`, true);
+                if (confirmDelete) {
+                    draggableElements = draggableElements.filter(el => el.id !== logoId);
+                    renderLogoThumbnails();
+                    drawCertificate();
+                    if (selectedDraggableElement && selectedDraggableElement.id === logoId) {
+                        selectedDraggableElement = null;
+                        updateSidebarControls();
+                    }
+                    saveState();
+                }
+            };
+
+
+            if (prevBtn) { // Added null check
+                prevBtn.addEventListener('click', () => {
+                    if (currentRecipientIndex > 0) {
+                        currentRecipientIndex--;
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            if (nextBtn) { // Added null check
+                nextBtn.addEventListener('click', () => {
+                    if (currentRecipientIndex < recipients.length - 1) {
+                        currentRecipientIndex++;
+                        drawCertificate();
+                        saveState();
+                    }
+                });
+            }
+
+            // NEW: View switch buttons
+            if (viewFrontBtn) { // Added null check
+                viewFrontBtn.addEventListener('click', () => {
+                    currentView = 'front';
+                    drawCertificate();
+                    saveState();
+                });
+            }
+
+            if (viewBackBtn) { // Added null check
+                viewBackBtn.addEventListener('click', () => {
+                    currentView = 'back';
+                    drawCertificate();
+                    saveState();
+                });
+            }
+
+
+            if (downloadPngBtn) { // Added null check
+                downloadPngBtn.addEventListener('click', () => {
+                    if (recipients.length === 0) {
+                        showModal('Tambahkan setidaknya satu penerima untuk mengunduh sertifikat.');
+                        return;
+                    }
+                    showLoading(true);
+                    isDownloading = true;
+                    drawCertificate(); // Ensure current recipient is drawn before capture
+
+                    html2canvas(canvas, { scale: 4, useCORS: true }).then(function(canvasImg) {
+                        const link = document.createElement('a');
+                        link.download = `sertifikat-${recipients[currentRecipientIndex].name.replace(/\s+/g, '-')}-${currentView}.png`;
+                        link.href = canvasImg.toDataURL('image/png');
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        isDownloading = false;
+                        drawCertificate(); // Redraw to show selection border if any
+                        showLoading(false);
+                    }).catch(error => {
+                        console.error('Error during canvas capture (PNG):', error);
+                        showModal(`Gagal mengunduh sertifikat PNG: ${error.message}.`);
+                        
+                        isDownloading = false;
+                        drawCertificate();
+                        showLoading(false);
+                    });
+                });
+            }
+
+            if (downloadPdfBtn) { // Added null check
+                downloadPdfBtn.addEventListener('click', () => {
+                    if (recipients.length === 0) {
+                        showModal('Tambahkan setidaknya satu penerima untuk mengunduh sertifikat.');
+                        return;
+                    }
+                    showLoading(true);
+                    isDownloading = true;
+                    drawCertificate(); // Ensure current recipient is drawn before capture
+
+                    html2canvas(canvas, { scale: 4, useCORS: true }).then(function(canvasImg) {
+                        const imgData = canvasImg.toDataURL('image/png');
+                        const { jsPDF } = window.jspdf;
+
+                        const imgWidth = 297; // A4 width in mm
+                        const imgHeight = (canvasImg.height * imgWidth) / canvasImg.width; // Calculate height to maintain aspect ratio
+
+                        let pdf;
+                        if (canvasImg.width > canvasImg.height) { // Landscape
+                            pdf = new jsPDF('landscape', 'mm', 'a4');
+                        } else { // Portrait
+                            pdf = new jsPDF('portrait', 'mm', 'a4');
+                        }
+
+                        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                        pdf.save(`sertifikat-${recipients[currentRecipientIndex].name.replace(/\s+/g, '-')}-${currentView}.pdf`);
+                        
+                        isDownloading = false;
+                        drawCertificate(); // Redraw to show selection border if any
+                        showLoading(false);
+                    }).catch(error => {
+                        console.error('Error during canvas capture (PDF):', error);
+                        showModal(`Gagal mengunduh sertifikat PDF: ${error.message}.`);
+                        
+                        isDownloading = false;
+                        drawCertificate();
+                        showLoading(false);
+                    });
+                });
+            }
+            
+            // NEW: Download All Recipients as a Single PDF
+            if (downloadAllPdfBtn) { // Added null check
+                downloadAllPdfBtn.addEventListener('click', async () => {
+                    if (recipients.length === 0) {
+                        await showModal('Tambahkan setidaknya satu penerima untuk mengunduh sertifikat.');
+                        return;
+                    }
+
+                    showLoading(true);
+                    isDownloading = true;
+                    
+                    const { jsPDF } = window.jspdf;
+                    let pdf = null;
+                    
+                    const originalRecipientIndex = currentRecipientIndex; // Store original index to restore later
+                    const originalView = currentView; // Store original view to restore later
+
+                    try {
+                        for (let i = 0; i < recipients.length; i++) {
+                            const recipient = recipients[i];
+                            
+                            // --- Draw and add Front of Certificate ---
+                            currentView = 'front'; // Temporarily switch to front view
+                            drawCertificate(recipient); // Draw front for the current recipient
+                            
+                            const canvasImgFront = await html2canvas(canvas, { scale: 4, useCORS: true });
+                            const imgDataFront = canvasImgFront.toDataURL('image/png');
+                            
+                            const imgWidth = 297; // A4 width in mm
+                            const imgHeight = (canvasImgFront.height * imgWidth) / canvasImgFront.width;
+
+                            if (!pdf) {
+                                pdf = new jsPDF(canvasImgFront.width > canvasImgFront.height ? 'landscape' : 'portrait', 'mm', 'a4');
+                            } else {
+                                pdf.addPage();
+                            }
+                            pdf.addImage(imgDataFront, 'PNG', 0, 0, imgWidth, imgHeight);
+
+                            // --- Draw and add Back of Certificate ---
+                            currentView = 'back'; // Temporarily switch to back view
+                            drawCertificate(recipient); // Draw back for the current recipient (recipient data won't change back content)
+                            
+                            const canvasImgBack = await html2canvas(canvas, { scale: 4, useCORS: true });
+                            const imgDataBack = canvasImgBack.toDataURL('image/png');
+
+                            pdf.addPage(); // Add a new page for the back
+                            pdf.addImage(imgDataBack, 'PNG', 0, 0, imgWidth, imgHeight);
+                        }
+                        
+                        pdf.save(`semua-sertifikat-${new Date().toISOString().slice(0,10)}.pdf`);
+                        await showModal('Semua sertifikat berhasil diunduh sebagai satu PDF!');
+
+                    } catch (error) {
+                        console.error('Error during bulk PDF download:', error);
+                        await showModal(`Gagal mengunduh semua sertifikat PDF: ${error.message}.`);
+                    } finally {
+                        isDownloading = false;
+                        currentRecipientIndex = originalRecipientIndex; // Restore original recipient
+                        currentView = originalView; // Restore original view
+                        drawCertificate(); // Redraw the certificate for the original recipient and view
+                        showLoading(false);
+                    }
+                });
+            }
+
+
+            if (resetAllDataBtn) resetAllDataBtn.addEventListener('click', resetAllData); // Added null check
+            if (clearTextFieldsBtn) clearTextFieldsBtn.addEventListener('click', clearAllTextFields); // Added null check
+
+            // === DRAGGING LOGIC ===
+            if (canvas) { // Added null check
+                canvas.addEventListener('mousedown', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+
+                    const mouseX = (e.clientX - rect.left) * scaleX;
+                    const mouseY = (e.clientY - rect.top) * scaleY;
+
+                    selectedDraggableElement = null;
+
+                    drawCertificate();
+
+                    // Iterate in reverse to select elements on top first
+                    for (let i = draggableElements.length - 1; i >= 0; i--) {
+                        const el = draggableElements[i];
+
+                        // Skip if not currently visible or is a fixed-relative element (like 'dateLabel')
+                        if (!el.isCurrentlyVisible || (el.id === 'dateLabel' && el.fixedRelative === 'date')) {
+                            continue;
+                        }
+
+                        let left, top, elementWidth, elementHeight;
+
+                        // For images, their calculatedX/Y/Width/Height are the same as x/y/width/height (no content-based layout)
+                        if (el.type === 'image') {
+                            left = el.x;
+                            top = el.y;
+                            elementWidth = el.width;
+                            elementHeight = el.height;
+                        } else { // type === 'text'
+                            left = el.calculatedX;
+                            top = el.calculatedY;
+                            elementWidth = el.calculatedWidth;
+                            elementHeight = el.calculatedHeight;
+                        }
+
+                        if (mouseX >= left && mouseX <= (left + elementWidth) &&
+                            mouseY >= top && mouseY <= (top + elementHeight)) {
+                            
+                            draggedElement = el;
+                            selectedDraggableElement = el;
+                            dragStartX = mouseX;
+                            dragStartY = mouseY;
+                            elementStartX = el.x;
+                            elementStartY = el.y;
+                            canvas.style.cursor = 'grabbing';
+                            updateSidebarControls();
+                            drawCertificate();
+                            break;
+                        }
+                    }
+                    if (!draggedElement && selectedDraggableElement) {
+                        selectedDraggableElement = null;
+                        updateSidebarControls();
+                        drawCertificate();
+                    }
+                });
+            }
+
+            if (canvas) { // Added null check
+                canvas.addEventListener('mousemove', (e) => {
+                    if (!draggedElement) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+
+                    const mouseX = (e.clientX - rect.left) * scaleX;
+                    const mouseY = (e.clientY - rect.top) * scaleY;
+
+                    const dx = mouseX - dragStartX;
+                    const dy = mouseY - dragStartY;
+
+                    let newX = elementStartX + dx;
+                    let newY = elementStartY + dy;
+
+                    // Mark elements as position customized if they are moved from their default dynamic positions
+                    if (['recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(draggedElement.id) ||
+                        ['backMateri', 'backNarasumber', 'backJam'].includes(draggedElement.id)) {
+                        draggedElement.isPositionCustomized = true;
+                    }
+
+                    // Clamp newX and newY to canvas boundaries
+                    newX = Math.max(0, Math.min(newX, canvas.width - (draggedElement.width || 0)));
+                    newY = Math.max(0, Math.min(newY, canvas.height - (draggedElement.height || 0)));
+
+                    draggedElement.x = newX;
+                    draggedElement.y = newY;
+                    
+                    drawCertificate();
+                });
+            }
+
+            if (canvas) { // Added null check
+                canvas.addEventListener('mouseup', () => {
+                    if (draggedElement) {
+                        draggedElement = null;
+                        canvas.style.cursor = 'grab';
+                        saveState();
+                    }
+                });
+            }
+
+            if (canvas) { // Added null check
+                canvas.addEventListener('mouseout', () => {
+                    if (draggedElement) {
+                        draggedElement = null;
+                        canvas.style.cursor = 'grab';
+                        saveState();
+                    }
+                });
+            }
+            // === END DRAGGING LOGIC ===
+
+            // --- Initial Setup ---
+            window.customTemplateDefinitions = null; 
+
+            document.fonts.ready.then(async () => {
+                await loadState();
+            }).catch(err => {
+                console.error("Error loading fonts:", err);
+                initializeDefaultState();
+            });
+        });
+    </script>
+</body>
+</html>
