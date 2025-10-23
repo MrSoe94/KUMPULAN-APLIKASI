@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Cerita Acak Lanjutan</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a better look and feel */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
+            background-color: #f0f2f5; /* Light grey background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 16px; /* More rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Softer shadow */
+            width: 100%;
+            max-width: 900px; /* Max width for better readability on large screens */
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        h1 {
+            color: #2c3e50; /* Darker title color */
+            font-size: 2.5rem; /* Larger title */
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center;
+            align-items: center;
+            gap: 20px; /* Space between controls */
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Align labels to the left */
+            gap: 8px;
+        }
+
+        .controls label {
+            font-weight: 600;
+            color: #34495e; /* Label color */
+            font-size: 1.1rem;
+        }
+
+        .controls select,
+        .controls button {
+            padding: 12px 20px;
+            border-radius: 10px; /* Rounded corners for inputs/buttons */
+            border: 1px solid #dcdfe6; /* Light border */
+            font-size: 1rem;
+            transition: all 0.3s ease; /* Smooth transitions */
+        }
+
+        .controls select {
+            background-color: #f8f9fa;
+            color: #34495e;
+            cursor: pointer;
+            min-width: 150px; /* Minimum width for select boxes */
+        }
+
+        .controls select:focus {
+            outline: none;
+            border-color: #4a90e2; /* Highlight on focus */
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+        }
+
+        #generateBtn {
+            background-color: #4a90e2; /* Primary blue button */
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+
+        #generateBtn:hover {
+            background-color: #357ABD; /* Darker blue on hover */
+            box-shadow: 0 6px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .story-output {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #storyDisplay {
+            width: 100%;
+            min-height: 350px; /* Increased height for story display */
+            padding: 20px;
+            border: 1px solid #dcdfe6;
+            border-radius: 10px;
+            font-size: 1.15em; /* Slightly larger font for story */
+            line-height: 1.7;
+            resize: vertical;
+            background-color: #fdfdfd;
+            color: #2c3e50;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Space between action buttons */
+            margin-top: 10px;
+        }
+
+        .action-buttons button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #copyBtn {
+            background-color: #2ecc71; /* Green for copy */
+            color: white;
+        }
+
+        #copyBtn:hover {
+            background-color: #27ae60; /* Darker green on hover */
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        #downloadBtn {
+            background-color: #95a5a6; /* Grey for download */
+            color: white;
+        }
+
+        #downloadBtn:hover {
+            background-color: #7f8c8d; /* Darker grey on hover */
+            box-shadow: 0 6px 15px rgba(149, 165, 166, 0.3);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .control-group {
+                width: 100%; /* Full width for control groups on small screens */
+                align-items: center; /* Center align labels */
+            }
+
+            .controls select,
+            .controls button {
+                width: 100%; /* Full width for inputs/buttons */
+                max-width: 300px; /* Limit width */
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .action-buttons button {
+                width: 100%;
+                max-width: 300px; /* Limit width */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generator Cerita Acak Lanjutan</h1>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="genre">Pilih Genre:</label>
+                <select id="genre" class="rounded-lg p-2">
+                    <option value="all">Semua</option>
+                    <option value="sci-fi">Fiksi Ilmiah</option>
+                    <option value="fantasy">Fantasi</option>
+                    <option value="mystery">Misteri</option>
+                    <option value="horror">Horor</option>
+                    <option value="romance">Romansa</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="length">Panjang Cerita:</label>
+                <select id="length" class="rounded-lg p-2">
+                    <option value="short">Pendek</option>
+                    <option value="medium">Sedang</option>
+                    <option value="long">Panjang</option>
+                </select>
+            </div>
+
+            <button id="generateBtn" class="rounded-lg px-6 py-3 bg-blue-500 text-white font-semibold shadow-md hover:bg-blue-600 transition-all">Buat Cerita</button>
+        </div>
+
+        <div class="story-output">
+            <textarea id="storyDisplay" readonly placeholder="Cerita Anda akan muncul di sini..." class="rounded-lg p-4 border border-gray-300"></textarea>
+            <div class="action-buttons">
+                <button id="copyBtn" class="rounded-lg px-6 py-3 bg-green-500 text-white font-semibold shadow-md hover:bg-green-600 transition-all">Salin Cerita</button>
+                <button id="downloadBtn" class="rounded-lg px-6 py-3 bg-gray-500 text-white font-semibold shadow-md hover:bg-gray-600 transition-all">Unduh Cerita</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const generateBtn = document.getElementById('generateBtn');
+            const genreSelect = document.getElementById('genre');
+            const lengthSelect = document.getElementById('length');
+            const storyDisplay = document.getElementById('storyDisplay');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            // Define story elements by genre
+            // Each category has a general list and genre-specific lists
+            const storyElements = {
+                all: {
+                    protagonists: [
+                        "seorang penjelajah pemberani",
+                        "seorang ilmuwan brilian",
+                        "seorang seniman yang kesepian",
+                        "seorang detektif yang cerdik",
+                        "seorang anak yatim piatu dengan rahasia",
+                        "seorang koki yang ambisius",
+                        "seorang pustakawan yang tenang",
+                        "seorang prajurit yang pensiun",
+                        "seorang musisi yang berbakat",
+                        "seorang penipu ulung"
+                    ],
+                    settings: [
+                        "hutan kuno yang diselimuti kabut",
+                        "kota metropolitan futuristik",
+                        "stasiun luar angkasa yang sepi",
+                        "desa pesisir yang tenang",
+                        "perpustakaan tua yang berdebu",
+                        "kastil yang megah",
+                        "gurun yang luas",
+                        "pulau tropis yang terpencil",
+                        "laboratorium bawah tanah",
+                        "kapal uap yang berlayar"
+                    ],
+                    openingEvents: [
+                        "sebuah artefak aneh ditemukan",
+                        "pesan misterius tiba",
+                        "bencana tak terduga melanda",
+                        "orang asing muncul di kota",
+                        "ingatan yang terlupakan kembali",
+                        "pencurian yang berani terjadi",
+                        "ramalan kuno terungkap",
+                        "penemuan ilmiah yang mengejutkan",
+                        "pertemuan yang tidak disengaja",
+                        "kejadian aneh di malam hari"
+                    ],
+                    conflicts: [
+                        "kekuatan kuno terbangun",
+                        "konspirasi terungkap",
+                        "perburuan harta karun yang hilang dimulai",
+                        "musuh yang tangguh muncul",
+                        "dilema moral yang sulit",
+                        "pengkhianatan dari orang terdekat",
+                        "perjuangan untuk bertahan hidup",
+                        "misteri yang membingungkan",
+                        "perlombaan melawan waktu",
+                        "ancaman dari dimensi lain"
+                    ],
+                    resolutions: [
+                        "keharmonisan dipulihkan",
+                        "kebenaran terungkap",
+                        "perdamaian ditemukan",
+                        "petualangan baru dimulai",
+                        "pengorbanan besar dilakukan",
+                        "musuh dikalahkan",
+                        "rahasia terpecahkan",
+                        "ikatan baru terbentuk",
+                        "pelajaran berharga dipetik",
+                        "dunia diselamatkan"
+                    ]
+                },
+                'sci-fi': {
+                    protagonists: [
+                        "seorang pilot luar angkasa veteran",
+                        "seorang insinyur robotik jenius",
+                        "seorang peneliti AI yang ambisius",
+                        "seorang penyintas pasca-apokaliptik yang tangguh",
+                        "seorang tentara siber",
+                        "seorang penjelajah galaksi"
+                    ],
+                    settings: [
+                        "koloni Mars yang terisolasi",
+                        "pesawat ruang angkasa yang melayang di nebula",
+                        "kota bawah tanah yang bercahaya neon",
+                        "laboratorium yang ditinggalkan di bulan",
+                        "planet asing yang penuh flora aneh",
+                        "stasiun penelitian di sabuk asteroid"
+                    ],
+                    openingEvents: [
+                        "kontak alien pertama yang mengejutkan",
+                        "mesin waktu ditemukan di puing-puing",
+                        "virus mutan menyebar melalui jaringan",
+                        "kecerdasan buatan menjadi hidup secara tak terduga",
+                        "sinyal SOS dari galaksi yang jauh",
+                        "gerbang warp yang tidak stabil terbuka"
+                    ],
+                    conflicts: [
+                        "perang antar galaksi yang menghancurkan",
+                        "pemberontakan robot yang cerdas",
+                        "kiamat siber yang mengancam peradaban",
+                        "perjalanan waktu yang kacau mengancam realitas",
+                        "invasi dari spesies asing",
+                        "perburuan teknologi terlarang"
+                    ],
+                    resolutions: [
+                        "perdamaian galaksi tercapai setelah negosiasi",
+                        "ancaman robot dinetralisir dengan inovasi",
+                        "timeline dipulihkan dengan presisi",
+                        "obat ditemukan untuk virus yang mematikan",
+                        "peradaban baru bangkit dari reruntuhan",
+                        "manusia mencapai evolusi berikutnya"
+                    ]
+                },
+                fantasy: {
+                    protagonists: [
+                        "seorang kesatria yang mulia dan tak kenal takut",
+                        "seorang penyihir kuat yang menguasai sihir kuno",
+                        "seorang elf yang bijaksana dan abadi",
+                        "seorang kurcaci yang tangguh dengan kapak perang",
+                        "seorang putri yang terkutuk",
+                        "seorang petualang yang mencari ketenaran"
+                    ],
+                    settings: [
+                        "kerajaan ajaib yang tersembunyi",
+                        "gua naga yang penuh harta karun",
+                        "hutan ajaib yang berbisik rahasia",
+                        "puncak gunung yang tertutup salju dan kuil kuno",
+                        "menara penyihir yang menjulang tinggi",
+                        "rawa-rawa gelap yang berbahaya"
+                    ],
+                    openingEvents: [
+                        "mantra kuno rusak, melepaskan kekuatan jahat",
+                        "ramalan menjadi kenyataan, menunjuk seorang pahlawan",
+                        "pahlawan dipanggil oleh dewa-dewa",
+                        "artefak sihir dicuri dari kuil suci",
+                        "portal ke dunia lain terbuka",
+                        "roh kuno terbangun dari tidur panjang"
+                    ],
+                    conflicts: [
+                        "raja iblis bangkit dari jurang",
+                        "perang sihir besar mengancam semua",
+                        "pencarian kristal yang hilang untuk menyelamatkan dunia",
+                        "kutukan kuno dilepaskan pada kerajaan",
+                        "pertempuran melawan orc yang tak terhitung jumlahnya",
+                        "pengkhianatan di antara para bangsawan"
+                    ],
+                    resolutions: [
+                        "kejahatan dikalahkan dan kedamaian kembali",
+                        "sihir dipulihkan ke tanah",
+                        "kerajaan diselamatkan dari kehancuran",
+                        "kutukan diangkat, membawa harapan baru",
+                        "pahlawan naik takhta",
+                        "keseimbangan alam dipulihkan"
+                    ]
+                },
+                mystery: {
+                    protagonists: [
+                        "seorang detektif swasta yang tajam",
+                        "seorang jurnalis investigatif yang gigih",
+                        "seorang profiler kriminal yang brilian",
+                        "seorang saksi mata yang enggan namun kunci",
+                        "seorang pensiunan polisi",
+                        "seorang psikolog forensik"
+                    ],
+                    settings: [
+                        "rumah tua yang angker di puncak bukit",
+                        "kedai kopi kota kecil yang penuh rahasia",
+                        "galeri seni yang mewah di pusat kota",
+                        "kapal pesiar yang mewah di tengah laut",
+                        "perpustakaan universitas yang sunyi",
+                        "hotel bersejarah yang megah"
+                    ],
+                    openingEvents: [
+                        "pembunuhan misterius yang mengguncang kota",
+                        "orang hilang tanpa jejak",
+                        "pencurian perhiasan yang berani dan tanpa petunjuk",
+                        "skandal politik terungkap di media",
+                        "pesan anonim yang mengancam",
+                        "penemuan tubuh yang tak terduga"
+                    ],
+                    conflicts: [
+                        "jaringan kriminal yang tersembunyi di balik fasad",
+                        "pemeras tanpa wajah yang mengancam reputasi",
+                        "rahasia keluarga yang terkubur selama beberapa generasi",
+                        "pelakunya bersembunyi di depan mata",
+                        "saksi kunci menghilang secara misterius",
+                        "bukti yang dimanipulasi"
+                    ],
+                    resolutions: [
+                        "pelakunya terungkap dan ditangkap",
+                        "keadilan ditegakkan setelah penyelidikan panjang",
+                        "kasus diselesaikan, membawa kedamaian bagi para korban",
+                        "rahasia terungkap, mengubah segalanya",
+                        "kebenaran yang menyakitkan diterima",
+                        "misteri akhirnya terpecahkan"
+                    ]
+                },
+                horror: {
+                    protagonists: [
+                        "seorang mahasiswa yang penasaran",
+                        "sekelompok teman yang berlibur",
+                        "seorang penjaga hutan yang kesepian",
+                        "seorang paranormal yang skeptis",
+                        "seorang anak kecil dengan indra keenam",
+                        "seorang peneliti fenomena aneh"
+                    ],
+                    settings: [
+                        "rumah sakit jiwa yang ditinggalkan",
+                        "hutan gelap yang berbisik",
+                        "kota hantu yang sepi",
+                        "katakombe bawah tanah yang menyeramkan",
+                        "pulau terpencil yang terkutuk",
+                        "rumah tua dengan sejarah kelam"
+                    ],
+                    openingEvents: [
+                        "panggilan telepon misterius di tengah malam",
+                        "penemuan buku kuno yang terkunci",
+                        "hilangnya seseorang secara tiba-tiba",
+                        "serangkaian mimpi buruk yang realistis",
+                        "suara aneh dari loteng",
+                        "ritual yang salah"
+                    ],
+                    conflicts: [
+                        "entitas jahat terbangun",
+                        "kutukan kuno menghantui mereka",
+                        "terjebak di tempat yang mengerikan",
+                        "rasa takut yang perlahan menguasai",
+                        "rahasia kelam yang tidak boleh terungkap",
+                        "perburuan oleh makhluk tak terlihat"
+                    ],
+                    resolutions: [
+                        "mereka berhasil melarikan diri, tetapi trauma tetap ada",
+                        "entitas itu kembali tidur, untuk sementara",
+                        "pengorbanan dilakukan untuk menghentikan kejahatan",
+                        "kebenaran yang mengerikan terungkap",
+                        "mereka menemukan cara untuk bertahan hidup",
+                        "akhir yang ambigu dan menakutkan"
+                    ]
+                },
+                romance: {
+                    protagonists: [
+                        "seorang penulis yang sedang berjuang",
+                        "seorang koki yang berbakat",
+                        "seorang arsitek yang sukses",
+                        "seorang seniman yang bebas",
+                        "seorang dokter yang berdedikasi",
+                        "seorang guru yang inspiratif"
+                    ],
+                    settings: [
+                        "kafe yang nyaman di Paris",
+                        "pedesaan Italia yang indah",
+                        "kota New York yang ramai",
+                        "pulau resor tropis",
+                        "perpustakaan kota yang tenang",
+                        "festival musik musim panas"
+                    ],
+                    openingEvents: [
+                        "pertemuan yang tidak disengaja di tengah hujan",
+                        "surat cinta lama ditemukan",
+                        "proyek kolaborasi yang tak terduga",
+                        "reuni dengan cinta masa lalu",
+                        "perjalanan yang mengubah hidup",
+                        "kesalahpahaman lucu"
+                    ],
+                    conflicts: [
+                        "kesalahpahaman yang menguji hubungan",
+                        "perbedaan status sosial",
+                        "mantan yang kembali mengganggu",
+                        "tekanan keluarga yang menghalangi",
+                        "ketakutan akan komitmen",
+                        "jarak jauh"
+                    ],
+                    resolutions: [
+                        "mereka mengatasi rintangan dan menemukan kebahagiaan",
+                        "cinta sejati menang",
+                        "mereka belajar untuk saling percaya",
+                        "perjalanan baru dimulai bersama",
+                        "pernikahan yang bahagia",
+                        "mereka menemukan takdir mereka bersama"
+                    ]
+                }
+            };
+
+            // Function to get a random element from an array
+            const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+            // Function to generate the story
+            generateBtn.addEventListener('click', () => {
+                const selectedGenre = genreSelect.value;
+                const selectedLength = lengthSelect.value;
+                let currentElements = { ...storyElements.all }; // Start with all general elements
+
+                // If a specific genre is selected, merge its elements with the general ones
+                if (selectedGenre !== 'all') {
+                    for (const key in storyElements[selectedGenre]) {
+                        // Ensure the key exists in 'all' before spreading, or initialize if not
+                        currentElements[key] = [
+                            ...(storyElements.all[key] || []), // Include general elements if they exist
+                            ...storyElements[selectedGenre][key] // Add genre-specific elements
+                        ];
+                    }
+                }
+
+                // Randomly select one element from each category
+                const protagonist = getRandomElement(currentElements.protagonists);
+                const setting = getRandomElement(currentElements.settings);
+                const openingEvent = getRandomElement(currentElements.openingEvents);
+                const conflict = getRandomElement(currentElements.conflicts);
+                const resolution = getRandomElement(currentElements.resolutions);
+
+                let story = "";
+
+                // Basic story structure
+                story += `Di ${setting}, hiduplah ${protagonist}. `;
+                story += `Suatu hari, ${openingEvent}. `;
+                story += `Ini menyebabkan ${conflict}. `;
+
+                // Adjust story length based on user selection
+                if (selectedLength === 'medium' || selectedLength === 'long') {
+                    story += `Sepanjang perjalanan, ia menghadapi banyak tantangan, sekutu tak terduga, dan momen-momen refleksi diri. `;
+                }
+                if (selectedLength === 'long') {
+                    story += `Akhirnya, setelah mengatasi rintangan terakhir dan mengungkap kebenaran yang lebih dalam, ${resolution}. `;
+                    story += `Dunia tidak akan pernah sama lagi, dan pelajaran berharga dipetik.`;
+                } else {
+                    story += `Pada akhirnya, ${resolution}.`;
+                }
+
+                storyDisplay.value = story;
+            });
+
+            // Function to copy story to clipboard
+            copyBtn.addEventListener('click', () => {
+                storyDisplay.select(); // Select the text in the textarea
+                storyDisplay.setSelectionRange(0, 99999); // For mobile devices
+
+                try {
+                    document.execCommand('copy'); // Execute copy command
+                    // Use a custom message box instead of alert
+                    showMessageBox('Cerita berhasil disalin ke papan klip!');
+                } catch (err) {
+                    showMessageBox('Gagal menyalin cerita. Silakan coba lagi secara manual.');
+                    console.error('Failed to copy text: ', err);
+                }
+            });
+
+            // Function to download story as a text file
+            downloadBtn.addEventListener('click', () => {
+                const storyText = storyDisplay.value;
+                if (storyText) {
+                    const blob = new Blob([storyText], { type: 'text/plain;charset=utf-8' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'cerita_acak.txt'; // Default filename
+                    document.body.appendChild(a);
+                    a.click(); // Programmatically click the link to trigger download
+                    document.body.removeChild(a); // Clean up the element
+                    URL.revokeObjectURL(a.href); // Release the object URL
+                } else {
+                    showMessageBox('Tidak ada cerita untuk diunduh. Silakan buat cerita terlebih dahulu.');
+                }
+            });
+
+            // Custom message box function (replaces alert)
+            function showMessageBox(message) {
+                const messageBox = document.createElement('div');
+                messageBox.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+                messageBox.innerHTML = `
+                    <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm mx-auto">
+                        <p class="text-lg font-semibold text-gray-800 mb-4">${message}</p>
+                        <button id="closeMessageBox" class="px-5 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">OK</button>
+                    </div>
+                `;
+                document.body.appendChild(messageBox);
+
+                document.getElementById('closeMessageBox').addEventListener('click', () => {
+                    document.body.removeChild(messageBox);
+                });
+
+                // Optional: Auto-hide after a few seconds
+                setTimeout(() => {
+                    if (document.body.contains(messageBox)) {
+                        document.body.removeChild(messageBox);
+                    }
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
