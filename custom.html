@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kustomisasi Desain Super Pro</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas library for capturing canvas content as image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Custom styles for better control and appearance */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            overflow: hidden; /* Prevent body scroll */
+        }
+
+        #app-container {
+            display: flex;
+            width: 95%; /* Responsive width */
+            max-width: 1400px;
+            height: 90vh; /* Responsive height */
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        #controls {
+            width: 320px; /* Wider controls panel */
+            min-width: 280px; /* Ensure controls don't get too small */
+            padding: 24px;
+            background-color: #f8fafc; /* Lighter background for controls */
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto; /* Scroll for many controls */
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            position: relative; /* Needed for absolute positioning of canvas */
+            overflow: hidden; /* Crucial for zoom/pan */
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform-origin: center center; /* Zoom from center */
+            transition: transform 0.1s ease-out; /* Smooth zoom transition */
+        }
+
+        #canvas {
+            width: 900px; /* Fixed width for the actual design area */
+            height: 600px; /* Fixed height for the actual design area */
+            border: 2px dashed #cbd5e1; /* Light gray dashed border */
+            position: relative;
+            background-color: #ffffff;
+            overflow: hidden; /* Crucial for containing draggable items */
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
+            border-radius: 8px;
+        }
+
+        /* Grid overlay */
+        #canvas.grid-active {
+            background-image:
+                linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+                linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px; /* Adjust grid size */
+        }
+
+
+        /* Draggable item base styles */
+        .draggable {
+            position: absolute;
+            cursor: grab;
+            border: 1px solid transparent; /* Default transparent border */
+            transition: border-color 0.1s ease-in-out; /* Smooth transition for border */
+            user-select: none; /* Prevent text selection during drag */
+            touch-action: none; /* Disable default touch actions like pan/zoom */
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+        }
+
+        .draggable.selected {
+            border: 1px dashed #3b82f6; /* Blue dashed border when selected */
+            z-index: 1000; /* Bring selected item to front, higher than other elements */
+        }
+        .draggable.group-item {
+            border: 2px dashed #8b5cf6; /* Purple dashed border for groups */
+            background-color: rgba(139, 92, 246, 0.1); /* Light purple background for groups */
+        }
+        .draggable.group-item.selected {
+            border: 2px dashed #6d28d9; /* Darker purple when selected */
+        }
+        .draggable.group-item > .draggable {
+            /* Children of a group should not show their own selected border */
+            border: none !important;
+        }
+
+
+        /* Text item specific styles */
+        .draggable.text-item {
+            padding: 8px 12px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a202c; /* Dark text color */
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+            word-break: break-word; /* Break long words */
+            min-width: 30px; /* Minimum width for text box */
+            min-height: 30px; /* Minimum height for text box */
+            display: flex; /* Use flex for vertical alignment */
+            align-items: center; /* Center text vertically */
+            justify-content: center; /* Center text horizontally */
+            text-align: center;
+        }
+
+        /* Image item specific styles */
+        .draggable.image-item img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block; /* Remove extra space below image */
+            pointer-events: none; /* Allow dragging the parent div, not the image itself */
+            object-fit: contain; /* Ensure image fits within its bounds */
+            /* Initial filters/transforms */
+            filter: brightness(100%) contrast(100%) grayscale(0%) sepia(0%);
+            transform: rotate(0deg) scaleX(1) scaleY(1);
+            transition: filter 0.1s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        /* SVG Shape styles */
+        .draggable.shape-item svg {
+            display: block;
+            pointer-events: none; /* Allow dragging the parent div, not the SVG itself */
+            overflow: visible; /* Allow stroke to be visible outside bounds */
+        }
+        .draggable.shape-item svg rect,
+        .draggable.shape-item svg circle {
+            fill: currentColor; /* Use current color for fill, controlled by JS */
+            stroke-width: 2; /* Default stroke width */
+            stroke: black; /* Default stroke color */
+        }
+
+
+        /* Resizing handles */
+        .resizer {
+            width: 10px;
+            height: 10px;
+            background: #3b82f6; /* Blue handles */
+            border: 1px solid #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 1001; /* Above the selected item */
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .resizer.top-left { top: -5px; left: -5px; cursor: nwse-resize; }
+        .resizer.top-right { top: -5px; right: -5px; cursor: nesw-resize; }
+        .resizer.bottom-left { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .resizer.bottom-right { bottom: -5px; right: -5px; cursor: nwse-resize; }
+
+        /* Hide default file input */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Style for custom file input button */
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #22c55e; /* Green for image upload */
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+
+        .custom-file-upload:hover {
+            background-color: #16a34a;
+        }
+
+        /* Buttons for text alignment and style */
+        .style-btn {
+            padding: 8px 12px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 500;
+            color: #4a5568;
+            border: 1px solid #cbd5e1;
+        }
+        .style-btn:hover {
+            background-color: #cbd5e1;
+        }
+        .style-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #app-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 95vh;
+            }
+            #controls {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+                padding: 16px;
+            }
+            #canvas-container {
+                padding: 16px;
+                flex-grow: 1;
+            }
+            #canvas {
+                width: 100%;
+                height: 400px; /* Adjust canvas height for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div id="app-container" class="flex flex-col md:flex-row bg-white rounded-xl shadow-2xl overflow-hidden">
+        <!-- Control Panel -->
+        <div id="controls" class="w-full md:w-80 p-6 bg-gray-50 border-b md:border-r border-gray-200 flex flex-col gap-4 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Alat Kustomisasi</h2>
+
+            <!-- Undo/Redo -->
+            <div class="space-y-3">
+                <h3 class="text-lg font-semibold text-gray-700">Riwayat</h3>
+                <div class="flex gap-2">
+                    <button id="undo-btn" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                        Undo
+                    </button>
+                    <button id="redo-btn" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                        Redo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Background Controls -->
+            <div class="space-y-3 mt-6">
+                <h3 class="text-lg font-semibold text-gray-700">Latar Belakang Kanvas</h3>
+                <div class="flex items-center gap-2">
+                    <label for="canvas-bg-color-input" class="text-sm font-medium text-gray-700">Warna:</label>
+                    <input type="color" id="canvas-bg-color-input" value="#ffffff" class="w-8 h-8 rounded-md border border-gray-300 cursor-pointer">
+                </div>
+                <input type="file" id="canvas-bg-image-input" accept="image/*">
+                <label for="canvas-bg-image-input" class="custom-file-upload !bg-indigo-500 hover:!bg-indigo-600">
+                    Gambar Latar Belakang
+                </label>
+                <button id="canvas-bg-remove-btn" class="w-full bg-red-400 hover:bg-red-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out">
+                    Hapus Gambar Latar Belakang
+                </button>
+            </div>
+
+            <!-- Canvas View Controls -->
+            <div class="space-y-3 mt-6">
+                <h3 class="text-lg font-semibold text-gray-700">Tampilan Kanvas</h3>
+                <div class="flex items-center gap-2">
+                    <label for="canvas-zoom-input" class="text-sm font-medium text-gray-700">Zoom:</label>
+                    <input type="range" id="canvas-zoom-input" min="50" max="200" value="100" class="flex-grow">
+                    <span id="canvas-zoom-value" class="text-sm text-gray-600">100%</span>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="toggle-grid-btn" class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="toggle-grid-btn" class="text-sm font-medium text-gray-700">Tampilkan Grid</label>
+                </div>
+            </div>
+
+            <!-- Text Controls -->
+            <div class="space-y-3 mt-6">
+                <h3 class="text-lg font-semibold text-gray-700">Teks</h3>
+                <button id="add-text-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out">
+                    Tambah Teks
+                </button>
+                <div class="flex items-center gap-2">
+                    <label for="font-size-input" class="text-sm font-medium text-gray-700">Ukuran:</label>
+                    <input type="range" id="font-size-input" min="10" max="100" value="24" class="flex-grow" disabled>
+                    <span id="font-size-value" class="text-sm text-gray-600">24px</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="font-color-input" class="text-sm font-medium text-gray-700">Warna:</label>
+                    <input type="color" id="font-color-input" value="#1a202c" class="w-8 h-8 rounded-md border border-gray-300 cursor-pointer" disabled>
+                </div>
+                <select id="font-family-select" class="w-full p-2 border border-gray-300 rounded-md text-gray-700 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500" disabled>
+                    <option value="Inter, sans-serif">Default</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="Times New Roman, serif">Times New Roman</option>
+                    <option value="Courier New, monospace">Courier New</option>
+                    <option value="Pacifico, cursive">Pacifico</option>
+                    <option value="Roboto, sans-serif">Roboto</option>
+                </select>
+                <!-- Text Alignment -->
+                <div class="flex justify-around gap-2 mt-2">
+                    <button id="align-left-btn" class="style-btn flex-1" disabled>Kiri</button>
+                    <button id="align-center-btn" class="style-btn flex-1" disabled>Tengah</button>
+                    <button id="align-right-btn" class="style-btn flex-1" disabled>Kanan</button>
+                </div>
+                <!-- Text Style -->
+                <div class="space-y-2 mt-2">
+                    <div class="flex justify-around gap-2">
+                        <button id="bold-btn" class="style-btn flex-1 font-bold" disabled>B</button>
+                        <button id="italic-btn" class="style-btn flex-1 italic" disabled>I</button>
+                        <button id="underline-btn" class="style-btn flex-1 underline" disabled>U</button>
+                    </div>
+                    <h4 class="text-sm font-medium text-gray-700">Bayangan Teks:</h4>
+                    <div class="flex items-center gap-2">
+                        <label for="text-shadow-color-input" class="text-sm font-medium text-gray-700">Warna:</label>
+                        <input type="color" id="text-shadow-color-input" value="#000000" class="w-8 h-8 rounded-md border border-gray-300 cursor-pointer" disabled>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="text-shadow-x-input" class="text-sm font-medium text-gray-700">Offset X:</label>
+                        <input type="range" id="text-shadow-x-input" min="-20" max="20" value="0" class="flex-grow" disabled>
+                        <span id="text-shadow-x-value" class="text-sm text-gray-600">0px</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="text-shadow-y-input" class="text-sm font-medium text-gray-700">Offset Y:</label>
+                        <input type="range" id="text-shadow-y-input" min="-20" max="20" value="0" class="flex-grow" disabled>
+                        <span id="text-shadow-y-value" class="text-sm text-gray-600">0px</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="text-shadow-blur-input" class="text-sm font-medium text-gray-700">Blur:</label>
+                        <input type="range" id="text-shadow-blur-input" min="0" max="20" value="0" class="flex-grow" disabled>
+                        <span id="text-shadow-blur-value" class="text-sm text-gray-600">0px</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Controls -->
+            <div class="space-y-3 mt-6">
+                <h3 class="text-lg font-semibold text-gray-700">Gambar</h3>
+                <input type="file" id="add-image-input" accept="image/*">
+                <label for="add-image-input" class="custom-file-upload">
+                    Tambah Gambar
+                </label>
+                <div class="flex items-center gap-2">
+                    <label for="image-opacity-input" class="text-sm font-medium text-gray-700">Opasitas:</label>
+                    <input type="range" id="image-opacity-input" min="0" max="100" value="100" class="flex-grow" disabled>
+                    <span id="image-opacity-value" class="text-sm text-gray-600">100%</span>
+                </div>
+                <h4 class="text-sm font-medium text-gray-700">Filter:</h4>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2">
+                        <label for="image-brightness-input" class="text-sm font-medium text-gray-700">Kecerahan:</label>
+                        <input type="range" id="image-brightness-input" min="0" max="200" value="100" class="flex-grow" disabled>
+                        <span id="image-brightness-value" class="text-sm text-gray-600">100%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="image-contrast-input" class="text-sm font-medium text-gray-700">Kontras:</label>
+                        <input type="range" id="image-contrast-input" min="0" max="200" value="100" class="flex-grow" disabled>
+                        <span id="image-contrast-value" class="text-sm text-gray-600">100%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="image-grayscale-input" class="text-sm font-medium text-gray-700">Grayscale:</label>
+                        <input type="range" id="image-grayscale-input" min="0" max="100" value="0" class="flex-grow" disabled>
+                        <span id="image-grayscale-value" class="text-sm text-gray-600">0%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="image-sepia-input" class="text-sm font-medium text-gray-700">Sepia:</label>
+                        <input type="range" id="image-sepia-input" min="0" max="100" value="0" class="flex-grow" disabled>
+                        <span id="image-sepia-value" class="text-sm text-gray-600">0%</span>
+                    </div>
+                </div>
+                <h4 class="text-sm font-medium text-gray-700">Transformasi:</h4>
+                <div class="flex justify-around gap-2 mt-2">
+                    <button id="image-rotate-btn" class="style-btn flex-1 !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Putar ↻</button>
+                    <button id="image-flip-x-btn" class="style-btn flex-1 !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Balik X</button>
+                    <button id="image-flip-y-btn" class="style-btn flex-1 !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Balik Y</button>
+                </div>
+            </div>
+
+            <!-- Shape Controls -->
+            <div class="space-y-3 mt-6">
+                <h3 class="text-lg font-semibold text-gray-700">Bentuk</h3>
+                <div class="flex gap-2">
+                    <button id="add-rect-btn" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out">
+                        Persegi
+                    </button>
+                    <button id="add-circle-btn" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out">
+                        Lingkaran
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="shape-fill-color-input" class="text-sm font-medium text-gray-700">Isian:</label>
+                    <input type="color" id="shape-fill-color-input" value="#3b82f6" class="w-8 h-8 rounded-md border border-gray-300 cursor-pointer" disabled>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="shape-stroke-color-input" class="text-sm font-medium text-gray-700">Garis:</label>
+                    <input type="color" id="shape-stroke-color-input" value="#1a202c" class="w-8 h-8 rounded-md border border-gray-300 cursor-pointer" disabled>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="shape-stroke-width-input" class="text-sm font-medium text-gray-700">Tebal Garis:</label>
+                    <input type="range" id="shape-stroke-width-input" min="0" max="10" value="2" class="flex-grow" disabled>
+                    <span id="shape-stroke-width-value" class="text-sm text-gray-600">2px</span>
+                </div>
+            </div>
+
+            <!-- General Item Controls -->
+            <div class="space-y-3 mt-6">
+                <h3 class="text-lg font-semibold text-gray-700">Kontrol Item</h3>
+                <div class="flex gap-2">
+                    <button id="group-items-btn" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                        Grup Item
+                    </button>
+                    <button id="ungroup-items-btn" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                        Batal Grup
+                    </button>
+                </div>
+                <button id="duplicate-item-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                    Duplikat Item
+                </button>
+                <h4 class="text-sm font-medium text-gray-700">Penyelarasan:</h4>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="align-canvas-left-btn" class="style-btn !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Kiri</button>
+                    <button id="align-canvas-center-h-btn" class="style-btn !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Tengah H</button>
+                    <button id="align-canvas-right-btn" class="style-btn !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Kanan</button>
+                    <button id="align-canvas-top-btn" class="style-btn !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Atas</button>
+                    <button id="align-canvas-center-v-btn" class="style-btn !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Tengah V</button>
+                    <button id="align-canvas-bottom-btn" class="style-btn !bg-gray-200 hover:!bg-gray-300 !text-gray-700" disabled>Bawah</button>
+                </div>
+                <button id="bring-forward-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                    Maju (Z-index)
+                </button>
+                <button id="send-backward-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                    Mundur (Z-index)
+                </button>
+                <button id="delete-item-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out" disabled>
+                    Hapus Item Terpilih
+                </button>
+            </div>
+
+            <!-- Canvas Actions -->
+            <div class="mt-8 space-y-3">
+                <button id="reset-canvas-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 ease-in-out">
+                    Reset Kanvas
+                </button>
+                <button id="download-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition duration-200 ease-in-out text-lg">
+                    Unduh Desain
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div id="canvas-container" class="flex-grow p-6 flex items-center justify-center relative">
+            <div id="canvas-wrapper">
+                <div id="canvas" class="border-2 border-dashed border-gray-300 bg-white shadow-inner rounded-lg relative">
+                    <!-- Draggable items will be appended here by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvasWrapper = document.getElementById('canvas-wrapper');
+            const canvas = document.getElementById('canvas');
+            const addTextBtn = document.getElementById('add-text-btn');
+            const addImageInput = document.getElementById('add-image-input');
+            const deleteItemBtn = document.getElementById('delete-item-btn');
+            const fontSizeInput = document.getElementById('font-size-input');
+            const fontSizeValue = document.getElementById('font-size-value');
+            const fontColorInput = document.getElementById('font-color-input');
+            const fontFamilySelect = document.getElementById('font-family-select');
+            const imageOpacityInput = document.getElementById('image-opacity-input');
+            const imageOpacityValue = document.getElementById('image-opacity-value');
+            const bringForwardBtn = document.getElementById('bring-forward-btn');
+            const sendBackwardBtn = document.getElementById('send-backward-btn');
+            const downloadBtn = document.getElementById('download-btn');
+
+            // New Controls
+            const canvasBgColorInput = document.getElementById('canvas-bg-color-input');
+            const canvasBgImageInput = document.getElementById('canvas-bg-image-input');
+            const canvasBgRemoveBtn = document.getElementById('canvas-bg-remove-btn');
+            const canvasZoomInput = document.getElementById('canvas-zoom-input');
+            const canvasZoomValue = document.getElementById('canvas-zoom-value');
+            const toggleGridBtn = document.getElementById('toggle-grid-btn');
+            const addRectBtn = document.getElementById('add-rect-btn');
+            const addCircleBtn = document.getElementById('add-circle-btn');
+            const shapeFillColorInput = document.getElementById('shape-fill-color-input');
+            const shapeStrokeColorInput = document.getElementById('shape-stroke-color-input');
+            const shapeStrokeWidthInput = document.getElementById('shape-stroke-width-input');
+            const shapeStrokeWidthValue = document.getElementById('shape-stroke-width-value');
+            const duplicateItemBtn = document.getElementById('duplicate-item-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            const alignLeftBtn = document.getElementById('align-left-btn');
+            const alignCenterBtn = document.getElementById('align-center-btn');
+            const alignRightBtn = document.getElementById('align-right-btn');
+            const boldBtn = document.getElementById('bold-btn');
+            const italicBtn = document.getElementById('italic-btn');
+            const underlineBtn = document.getElementById('underline-btn');
+            const textShadowColorInput = document.getElementById('text-shadow-color-input');
+            const textShadowXInput = document.getElementById('text-shadow-x-input');
+            const textShadowXValue = document.getElementById('text-shadow-x-value');
+            const textShadowYInput = document.getElementById('text-shadow-y-input');
+            const textShadowYValue = document.getElementById('text-shadow-y-value');
+            const textShadowBlurInput = document.getElementById('text-shadow-blur-input');
+            const textShadowBlurValue = document.getElementById('text-shadow-blur-value');
+            const imageBrightnessInput = document.getElementById('image-brightness-input');
+            const imageBrightnessValue = document.getElementById('image-brightness-value');
+            const imageContrastInput = document.getElementById('image-contrast-input');
+            const imageContrastValue = document.getElementById('image-contrast-value');
+            const imageGrayscaleInput = document.getElementById('image-grayscale-input');
+            const imageGrayscaleValue = document.getElementById('image-grayscale-value');
+            const imageSepiaInput = document.getElementById('image-sepia-input');
+            const imageSepiaValue = document.getElementById('image-sepia-value');
+            const imageRotateBtn = document.getElementById('image-rotate-btn');
+            const imageFlipXBtn = document.getElementById('image-flip-x-btn');
+            const imageFlipYBtn = document.getElementById('image-flip-y-btn');
+            const alignCanvasLeftBtn = document.getElementById('align-canvas-left-btn');
+            const alignCanvasCenterHBtn = document.getElementById('align-canvas-center-h-btn');
+            const alignCanvasRightBtn = document.getElementById('align-canvas-right-btn');
+            const alignCanvasTopBtn = document.getElementById('align-canvas-top-btn');
+            const alignCanvasCenterVBtn = document.getElementById('align-canvas-center-v-btn');
+            const alignCanvasBottomBtn = document.getElementById('align-canvas-bottom-btn');
+            const groupItemsBtn = document.getElementById('group-items-btn');
+            const ungroupItemsBtn = document.getElementById('ungroup-items-btn');
+            const resetCanvasBtn = document.getElementById('reset-canvas-btn');
+
+
+            let selectedItem = null;
+            let isDragging = false;
+            let isResizing = false;
+            let offsetX, offsetY; // Offset dari kursor ke sudut kiri atas item
+            let currentResizer = null;
+            let currentZoom = 1; // Initial zoom level
+
+            // Undo/Redo History
+            let history = [];
+            let historyPointer = -1;
+            const MAX_HISTORY_STATES = 20; // Limit history size
+
+            // --- History Management ---
+            function saveState() {
+                // Remove future states if we're not at the end of history
+                if (historyPointer < history.length - 1) {
+                    history = history.slice(0, historyPointer + 1);
+                }
+                // Store a deep clone of the canvas's innerHTML and its background styles
+                history.push({
+                    html: canvas.innerHTML,
+                    backgroundColor: canvas.style.backgroundColor,
+                    backgroundImage: canvas.style.backgroundImage,
+                    backgroundSize: canvas.style.backgroundSize,
+                    backgroundPosition: canvas.style.backgroundPosition,
+                    backgroundRepeat: canvas.style.backgroundRepeat,
+                    gridActive: canvas.classList.contains('grid-active')
+                });
+                historyPointer++;
+
+                // Limit history size
+                if (history.length > MAX_HISTORY_STATES) {
+                    history.shift();
+                    historyPointer--;
+                }
+                updateUndoRedoButtons();
+            }
+
+            function loadState(pointer) {
+                if (pointer >= 0 && pointer < history.length) {
+                    const state = history[pointer];
+                    canvas.innerHTML = state.html;
+                    canvas.style.backgroundColor = state.backgroundColor;
+                    canvas.style.backgroundImage = state.backgroundImage;
+                    canvas.style.backgroundSize = state.backgroundSize;
+                    canvas.style.backgroundPosition = state.backgroundPosition;
+                    canvas.style.backgroundRepeat = state.backgroundRepeat;
+                    toggleGridBtn.checked = state.gridActive;
+                    canvas.classList.toggle('grid-active', state.gridActive);
+                    canvasBgColorInput.value = state.backgroundColor || '#ffffff';
+
+                    // Re-attach event listeners to loaded elements
+                    canvas.querySelectorAll('.draggable').forEach(item => {
+                        makeDraggable(item);
+                        if (item.classList.contains('text-item')) {
+                            makeEditable(item);
+                        }
+                    });
+                    selectedItem = null; // Deselect after loading state
+                    updateControlPanel(null); // Reset controls
+                    updateUndoRedoButtons();
+                }
+            }
+
+            function updateUndoRedoButtons() {
+                undoBtn.disabled = historyPointer <= 0;
+                redoBtn.disabled = historyPointer >= history.length - 1;
+            }
+
+            // --- Utility Functions ---
+
+            // Function to select an item on the canvas
+            function selectItem(item) {
+                // Deselect all existing items first
+                canvas.querySelectorAll('.draggable.selected').forEach(selItem => {
+                    selItem.classList.remove('selected');
+                    removeResizers(selItem);
+                });
+
+                selectedItem = item;
+                if (selectedItem) {
+                    selectedItem.classList.add('selected');
+                    addResizers(selectedItem);
+                    updateControlPanel(selectedItem); // Update controls based on selected item
+                } else {
+                    resetControlPanel(); // Reset controls if nothing is selected
+                }
+            }
+
+            // Update control panel inputs based on the selected item's properties
+            function updateControlPanel(item) {
+                // Reset all controls to default/disabled state first
+                resetControlPanel();
+
+                if (!item) return; // If no item selected, just reset
+
+                // Enable general controls
+                duplicateItemBtn.disabled = false;
+                bringForwardBtn.disabled = false;
+                sendBackwardBtn.disabled = false;
+                deleteItemBtn.disabled = false;
+                groupItemsBtn.disabled = false; // Always allow grouping (even single item can be grouped into itself)
+                ungroupItemsBtn.disabled = !item.classList.contains('group-item'); // Only enable if it's a group
+
+                // Alignment buttons
+                alignCanvasLeftBtn.disabled = false;
+                alignCanvasCenterHBtn.disabled = false;
+                alignCanvasRightBtn.disabled = false;
+                alignCanvasTopBtn.disabled = false;
+                alignCanvasCenterVBtn.disabled = false;
+                alignCanvasBottomBtn.disabled = false;
+
+
+                if (item.classList.contains('text-item')) {
+                    fontSizeInput.value = parseFloat(item.style.fontSize) || 24;
+                    fontSizeValue.textContent = `${fontSizeInput.value}px`;
+                    fontColorInput.value = item.style.color || '#1a202c';
+                    fontFamilySelect.value = item.style.fontFamily || 'Inter, sans-serif';
+                    
+                    // Text alignment
+                    alignLeftBtn.classList.toggle('active', item.style.textAlign === 'left');
+                    alignCenterBtn.classList.toggle('active', item.style.textAlign === 'center');
+                    alignRightBtn.classList.toggle('active', item.style.textAlign === 'right');
+
+                    // Text style
+                    boldBtn.classList.toggle('active', item.style.fontWeight === 'bold');
+                    italicBtn.classList.toggle('active', item.style.fontStyle === 'italic');
+                    underlineBtn.classList.toggle('active', item.style.textDecoration.includes('underline'));
+
+                    // Text shadow
+                    const shadow = item.style.textShadow.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)\s*(-?\d+)px\s*(-?\d+)px\s*(\d+)px/);
+                    if (shadow) {
+                        textShadowColorInput.value = `#${parseInt(shadow[1]).toString(16).padStart(2, '0')}${parseInt(shadow[2]).toString(16).padStart(2, '0')}${parseInt(shadow[3]).toString(16).padStart(2, '0')}`;
+                        textShadowXInput.value = parseInt(shadow[4]);
+                        textShadowYInput.value = parseInt(shadow[5]);
+                        textShadowBlurInput.value = parseInt(shadow[6]);
+                    } else {
+                        textShadowColorInput.value = '#000000';
+                        textShadowXInput.value = 0;
+                        textShadowYInput.value = 0;
+                        textShadowBlurInput.value = 0;
+                    }
+                    textShadowXValue.textContent = `${textShadowXInput.value}px`;
+                    textShadowYValue.textContent = `${textShadowYInput.value}px`;
+                    textShadowBlurValue.textContent = `${textShadowBlurInput.value}px`;
+
+
+                    fontSizeInput.disabled = false;
+                    fontColorInput.disabled = false;
+                    fontFamilySelect.disabled = false;
+                    alignLeftBtn.disabled = false;
+                    alignCenterBtn.disabled = false;
+                    alignRightBtn.disabled = false;
+                    boldBtn.disabled = false;
+                    italicBtn.disabled = false;
+                    underlineBtn.disabled = false;
+                    textShadowColorInput.disabled = false;
+                    textShadowXInput.disabled = false;
+                    textShadowYInput.disabled = false;
+                    textShadowBlurInput.disabled = false;
+
+                } else if (item.classList.contains('image-item')) {
+                    imageOpacityInput.value = parseFloat(item.style.opacity) * 100 || 100;
+                    imageOpacityValue.textContent = `${imageOpacityInput.value}%`;
+
+                    // Image filters (read from computed style if direct style is empty)
+                    const imgElement = item.querySelector('img');
+                    if (imgElement) {
+                        const computedFilter = getComputedStyle(imgElement).filter;
+                        const getFilterValue = (filterName, defaultValue) => {
+                            const match = computedFilter.match(new RegExp(`${filterName}\\(([^)]+)\\)`));
+                            return match ? parseFloat(match[1].replace('%', '').replace('deg', '')) : defaultValue;
+                        };
+                        imageBrightnessInput.value = getFilterValue('brightness', 100);
+                        imageContrastInput.value = getFilterValue('contrast', 100);
+                        imageGrayscaleInput.value = getFilterValue('grayscale', 0);
+                        imageSepiaInput.value = getFilterValue('sepia', 0);
+
+                        imageBrightnessValue.textContent = `${imageBrightnessInput.value}%`;
+                        imageContrastValue.textContent = `${imageContrastInput.value}%`;
+                        imageGrayscaleValue.textContent = `${imageGrayscaleInput.value}%`;
+                        imageSepiaValue.textContent = `${imageSepiaInput.value}%`;
+                        
+                        // Image transforms (read from computed style)
+                        const computedTransform = getComputedStyle(imgElement).transform;
+                        const getTransformValue = (transformName, defaultValue) => {
+                            const matrix = new DOMMatrix(computedTransform);
+                            if (transformName === 'rotate') {
+                                return Math.round(Math.atan2(matrix.b, matrix.a) * (180 / Math.PI));
+                            } else if (transformName === 'scaleX') {
+                                return matrix.a;
+                            } else if (transformName === 'scaleY') {
+                                return matrix.d;
+                            }
+                            return defaultValue;
+                        };
+                        imgElement._rotate = getTransformValue('rotate', 0);
+                        imgElement._flipX = getTransformValue('scaleX', 1) === -1;
+                        imgElement._flipY = getTransformValue('scaleY', 1) === -1;
+                    }
+
+
+                    imageOpacityInput.disabled = false;
+                    imageBrightnessInput.disabled = false;
+                    imageContrastInput.disabled = false;
+                    imageGrayscaleInput.disabled = false;
+                    imageSepiaInput.disabled = false;
+                    imageRotateBtn.disabled = false;
+                    imageFlipXBtn.disabled = false;
+                    imageFlipYBtn.disabled = false;
+
+                } else if (item.classList.contains('shape-item')) {
+                    // For shapes, we need to get attributes from the SVG element inside
+                    const svgElement = item.querySelector('svg > *');
+                    if (svgElement) {
+                        shapeFillColorInput.value = svgElement.getAttribute('fill') || '#3b82f6';
+                        shapeStrokeColorInput.value = svgElement.getAttribute('stroke') || '#1a202c';
+                        shapeStrokeWidthInput.value = parseFloat(svgElement.getAttribute('stroke-width')) || 2;
+                        shapeStrokeWidthValue.textContent = `${shapeStrokeWidthInput.value}px`;
+                    } else {
+                        // Fallback if SVG element not found (shouldn't happen if created correctly)
+                        shapeFillColorInput.value = '#3b82f6';
+                        shapeStrokeColorInput.value = '#1a202c';
+                        shapeStrokeWidthInput.value = 2;
+                        shapeStrokeWidthValue.textContent = '2px';
+                    }
+
+                    shapeFillColorInput.disabled = false;
+                    shapeStrokeColorInput.disabled = false;
+                    shapeStrokeWidthInput.disabled = false;
+                } else if (item.classList.contains('group-item')) {
+                    // Group items have no specific style controls, only general ones
+                }
+            }
+
+            // Reset control panel inputs to default/disabled state
+            function resetControlPanel() {
+                // Text controls
+                fontSizeInput.value = 24;
+                fontSizeValue.textContent = '24px';
+                fontColorInput.value = '#1a202c';
+                fontFamilySelect.value = 'Inter, sans-serif';
+                fontSizeInput.disabled = true;
+                fontColorInput.disabled = true;
+                fontFamilySelect.disabled = true;
+                alignLeftBtn.disabled = true;
+                alignCenterBtn.disabled = true;
+                alignRightBtn.disabled = true;
+                boldBtn.disabled = true;
+                italicBtn.disabled = true;
+                underlineBtn.disabled = true;
+                alignLeftBtn.classList.remove('active');
+                alignCenterBtn.classList.remove('active');
+                alignRightBtn.classList.remove('active');
+                boldBtn.classList.remove('active');
+                italicBtn.classList.remove('active');
+                underlineBtn.classList.remove('active');
+                textShadowColorInput.value = '#000000';
+                textShadowXInput.value = 0;
+                textShadowYInput.value = 0;
+                textShadowBlurInput.value = 0;
+                textShadowXValue.textContent = '0px';
+                textShadowYValue.textContent = '0px';
+                textShadowBlurValue.textContent = '0px';
+                textShadowColorInput.disabled = true;
+                textShadowXInput.disabled = true;
+                textShadowYInput.disabled = true;
+                textShadowBlurInput.disabled = true;
+
+                // Image controls
+                imageOpacityInput.value = 100;
+                imageOpacityValue.textContent = '100%';
+                imageOpacityInput.disabled = true;
+                imageBrightnessInput.value = 100;
+                imageBrightnessValue.textContent = '100%';
+                imageContrastInput.value = 100;
+                imageContrastValue.textContent = '100%';
+                imageGrayscaleInput.value = 0;
+                imageGrayscaleValue.textContent = '0%';
+                imageSepiaInput.value = 0;
+                imageSepiaValue.textContent = '0%';
+                imageBrightnessInput.disabled = true;
+                imageContrastInput.disabled = true;
+                imageGrayscaleInput.disabled = true;
+                imageSepiaInput.disabled = true;
+                imageRotateBtn.disabled = true;
+                imageFlipXBtn.disabled = true;
+                imageFlipYBtn.disabled = true;
+
+
+                // Shape controls
+                shapeFillColorInput.value = '#3b82f6';
+                shapeStrokeColorInput.value = '#1a202c';
+                shapeStrokeWidthInput.value = 2;
+                shapeStrokeWidthValue.textContent = '2px';
+                shapeFillColorInput.disabled = true;
+                shapeStrokeColorInput.disabled = true;
+                shapeStrokeWidthInput.disabled = true;
+
+                // General item controls
+                duplicateItemBtn.disabled = true;
+                bringForwardBtn.disabled = true;
+                sendBackwardBtn.disabled = true;
+                deleteItemBtn.disabled = true;
+                groupItemsBtn.disabled = true;
+                ungroupItemsBtn.disabled = true;
+
+                // Alignment buttons
+                alignCanvasLeftBtn.disabled = true;
+                alignCanvasCenterHBtn.disabled = true;
+                alignCanvasRightBtn.disabled = true;
+                alignCanvasTopBtn.disabled = true;
+                alignCanvasCenterVBtn.disabled = true;
+                alignCanvasBottomBtn.disabled = true;
+            }
+
+            // --- Draggable Functionality ---
+            function makeDraggable(element) {
+                // Ensure existing listeners are removed before adding new ones to prevent duplicates
+                element.removeEventListener('mousedown', element._mousedownHandler);
+                element.removeEventListener('touchstart', element._touchstartHandler);
+
+                const onMouseDown = (e) => {
+                    // Hanya mulai drag jika bukan resizer
+                    if (e.target.classList.contains('resizer')) {
+                        isResizing = true;
+                        currentResizer = e.target;
+                        selectItem(element); // Pastikan elemen induk terpilih
+                        return;
+                    }
+
+                    if (e.button === 0) { // Hanya klik kiri
+                        isDragging = true;
+                        selectItem(element); // Pilih item saat drag dimulai
+                        
+                        const elementRect = element.getBoundingClientRect();
+                        // Hitung offset dari kursor ke sudut kiri atas item
+                        // Offset ini akan tetap konstan selama drag
+                        offsetX = e.clientX - elementRect.left;
+                        offsetY = e.clientY - elementRect.top;
+
+                        element.style.cursor = 'grabbing';
+                    }
+                };
+
+                element._mousedownHandler = onMouseDown; // Store reference for removal
+                element.addEventListener('mousedown', onMouseDown);
+
+                element._touchstartHandler = (e) => {
+                    e.preventDefault(); // Mencegah perilaku sentuhan default (misalnya, scrolling)
+                    const touch = e.touches[0];
+                    onMouseDown({
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        button: 0, // Mensimulasikan klik kiri
+                        target: e.target
+                    });
+                };
+                element.addEventListener('touchstart', element._touchstartHandler);
+            }
+
+            // Global mouse/touch move and up events for dragging and resizing
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && selectedItem) {
+                    const canvasRect = canvas.getBoundingClientRect();
+
+                    // Hitung posisi baru sudut kiri atas item
+                    // dengan mengurangi offset awal kursor-ke-item dari posisi kursor saat ini
+                    // relatif terhadap kanvas.
+                    let newLeft = (e.clientX - canvasRect.left) - offsetX;
+                    let newTop = (e.clientY - canvasRect.top) - offsetY;
+
+                    // Adjust for canvas zoom
+                    newLeft /= currentZoom;
+                    newTop /= currentZoom;
+
+                    // --- Batasan Pergerakan Item di Dalam Kanvas ---
+                    // Memastikan item tidak keluar dari batas kiri (0)
+                    newLeft = Math.max(0, newLeft);
+                    // Memastikan item tidak keluar dari batas atas (0)
+                    newTop = Math.max(0, newTop);
+                    // Memastikan item tidak keluar dari batas kanan kanvas
+                    newLeft = Math.min(newLeft, canvas.offsetWidth - selectedItem.offsetWidth);
+                    // Memastikan item tidak keluar dari batas bawah kanvas
+                    newTop = Math.min(newTop, canvas.offsetHeight - selectedItem.offsetHeight);
+                    // --- Akhir Batasan Pergerakan ---
+
+                    selectedItem.style.left = `${newLeft}px`;
+                    selectedItem.style.top = `${newTop}px`;
+                } else if (isResizing && selectedItem && currentResizer) {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    let newWidth, newHeight;
+                    let newLeft = parseFloat(selectedItem.style.left);
+                    let newTop = parseFloat(selectedItem.style.top);
+                    let currentWidth = selectedItem.offsetWidth;
+                    let currentHeight = selectedItem.offsetHeight;
+
+                    const mouseX = (e.clientX - canvasRect.left) / currentZoom;
+                    const mouseY = (e.clientY - canvasRect.top) / currentZoom;
+
+                    switch (currentResizer.classList[1]) { // e.g., 'top-left'
+                        case 'top-left':
+                            newWidth = currentWidth + (newLeft - mouseX);
+                            newHeight = currentHeight + (newTop - mouseY);
+                            newLeft = mouseX;
+                            newTop = mouseY;
+                            break;
+                        case 'top-right':
+                            newWidth = mouseX - newLeft;
+                            newHeight = currentHeight + (newTop - mouseY);
+                            newTop = mouseY;
+                            break;
+                        case 'bottom-left':
+                            newWidth = currentWidth + (newLeft - mouseX);
+                            newHeight = mouseY - newTop;
+                            newLeft = mouseX;
+                            break;
+                        case 'bottom-right':
+                            newWidth = mouseX - newLeft;
+                            newHeight = mouseY - newTop;
+                            break;
+                    }
+
+                    // Terapkan ukuran minimum
+                    newWidth = Math.max(30, newWidth);
+                    newHeight = Math.max(30, newHeight);
+
+                    // Perbarui gaya, pastikan posisi juga diperbarui untuk resizer top/left
+                    selectedItem.style.width = `${newWidth}px`;
+                    selectedItem.style.height = `${newHeight}px`;
+                    selectedItem.style.left = `${newLeft}px`;
+                    selectedItem.style.top = `${newTop}px`;
+                }
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Mencegah perilaku sentuhan default
+                const touch = e.touches[0];
+                document.dispatchEvent(new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    bubbles: true,
+                    cancelable: true
+                }));
+            }, { passive: false }); // Gunakan passive: false untuk mengizinkan preventDefault
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging || isResizing) {
+                    saveState(); // Save state after drag or resize ends
+                }
+                isDragging = false;
+                isResizing = false;
+                currentResizer = null;
+                if (selectedItem) {
+                    selectedItem.style.cursor = 'grab';
+                }
+            });
+
+            document.addEventListener('touchend', () => {
+                document.dispatchEvent(new MouseEvent('mouseup', {
+                    bubbles: true,
+                    cancelable: true
+                }));
+            });
+
+            // --- Resizing Functionality ---
+            function addResizers(element) {
+                const resizerPositions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+                resizerPositions.forEach(pos => {
+                    const resizer = document.createElement('div');
+                    resizer.classList.add('resizer', pos);
+                    element.appendChild(resizer);
+                });
+            }
+
+            function removeResizers(element) {
+                const resizers = element.querySelectorAll('.resizer');
+                resizers.forEach(resizer => resizer.remove());
+            }
+
+            // --- Item Creation ---
+
+            // Tombol Tambah Teks
+            addTextBtn.addEventListener('click', () => {
+                const textContent = prompt('Masukkan teks:');
+                if (textContent !== null) { // Cek apakah pengguna tidak membatalkan
+                    const textItem = document.createElement('div');
+                    textItem.classList.add('draggable', 'text-item');
+                    textItem.textContent = textContent;
+                    textItem.style.left = '50px';
+                    textItem.style.top = '50px';
+                    textItem.style.fontSize = `${fontSizeInput.value}px`;
+                    textItem.style.color = fontColorInput.value;
+                    textItem.style.fontFamily = fontFamilySelect.value;
+                    textItem.style.textAlign = 'center'; // Default alignment
+                    textItem.style.fontWeight = 'normal';
+                    textItem.style.fontStyle = 'normal';
+                    textItem.style.textDecoration = 'none';
+                    textItem.style.textShadow = 'none'; // Default no shadow
+                    canvas.appendChild(textItem);
+                    makeDraggable(textItem);
+                    makeEditable(textItem);
+                    selectItem(textItem);
+                    saveState(); // Save state after adding item
+                }
+            });
+
+            // Input Tambah Gambar
+            addImageInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imgItem = document.createElement('div');
+                        imgItem.classList.add('draggable', 'image-item');
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = "Gambar Kustom";
+                        img.style.filter = 'brightness(100%) contrast(100%) grayscale(0%) sepia(0%)';
+                        img.style.transform = 'rotate(0deg) scaleX(1) scaleY(1)';
+                        img._rotate = 0; // Store rotation state
+                        img._flipX = 1; // Store flip state
+                        img._flipY = 1; // Store flip state
+
+                        imgItem.appendChild(img);
+                        imgItem.style.left = '100px';
+                        imgItem.style.top = '100px';
+                        imgItem.style.width = '200px'; // Lebar gambar default
+                        imgItem.style.height = 'auto'; // Pertahankan rasio aspek
+                        imgItem.style.opacity = imageOpacityInput.value / 100; // Terapkan opasitas default
+                        canvas.appendChild(imgItem);
+                        makeDraggable(imgItem);
+                        selectItem(imgItem);
+                        saveState(); // Save state after adding item
+                    };
+                    reader.readAsDataURL(file);
+                    event.target.value = ''; // Bersihkan input untuk memungkinkan mengunggah file yang sama lagi
+                }
+            });
+
+            // Add Rectangle Button
+            addRectBtn.addEventListener('click', () => {
+                const rectItem = document.createElement('div');
+                rectItem.classList.add('draggable', 'shape-item');
+                rectItem.style.width = '150px';
+                rectItem.style.height = '100px';
+                rectItem.style.left = '50px';
+                rectItem.style.top = '150px';
+                
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.setAttribute('viewBox', '0 0 150 100'); // Initial viewBox matches element size
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '0');
+                rect.setAttribute('y', '0');
+                rect.setAttribute('width', '100%');
+                rect.setAttribute('height', '100%');
+                rect.setAttribute('fill', shapeFillColorInput.value);
+                rect.setAttribute('stroke', shapeStrokeColorInput.value);
+                rect.setAttribute('stroke-width', shapeStrokeWidthInput.value);
+                
+                svg.appendChild(rect);
+                rectItem.appendChild(svg);
+                
+                canvas.appendChild(rectItem);
+                makeDraggable(rectItem);
+                selectItem(rectItem);
+                saveState();
+            });
+
+            // Add Circle Button
+            addCircleBtn.addEventListener('click', () => {
+                const circleItem = document.createElement('div');
+                circleItem.classList.add('draggable', 'shape-item');
+                circleItem.style.width = '100px';
+                circleItem.style.height = '100px';
+                circleItem.style.left = '150px';
+                circleItem.style.top = '50px';
+                // Note: border-radius handles visual circle, SVG handles actual shape
+                
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.setAttribute('viewBox', '0 0 100 100'); // Initial viewBox matches element size
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', '50'); // Center X
+                circle.setAttribute('cy', '50'); // Center Y
+                circle.setAttribute('r', '48'); // Radius (slightly less than 50 to account for stroke)
+                circle.setAttribute('fill', shapeFillColorInput.value);
+                circle.setAttribute('stroke', shapeStrokeColorInput.value);
+                circle.setAttribute('stroke-width', shapeStrokeWidthInput.value);
+                
+                svg.appendChild(circle);
+                circleItem.appendChild(svg);
+
+                canvas.appendChild(circleItem);
+                makeDraggable(circleItem);
+                selectItem(circleItem);
+                saveState();
+            });
+
+
+            // --- Item Interaction ---
+
+            // Klik kanvas untuk memilih/membatalkan pilihan
+            canvas.addEventListener('click', (e) => {
+                // Cek apakah target klik atau induknya adalah item yang bisa di-drag
+                let clickedDraggable = null;
+                let target = e.target;
+                while (target && target !== canvas) {
+                    if (target.classList.contains('draggable')) {
+                        clickedDraggable = target;
+                        break;
+                    }
+                    target = target.parentNode;
+                }
+
+                if (clickedDraggable) {
+                    selectItem(clickedDraggable);
+                } else {
+                    selectItem(null); // Batalkan pilihan jika mengklik area kosong kanvas
+                }
+            });
+
+            // Jadikan teks dapat diedit dengan klik dua kali
+            function makeEditable(textItem) {
+                // Remove previous dblclick listener to prevent duplicates
+                textItem.removeEventListener('dblclick', textItem._dblclickHandler);
+
+                const dblclickHandler = () => {
+                    textItem.contentEditable = true;
+                    textItem.focus();
+                    textItem.classList.add('editing'); // Opsional: tambahkan isyarat visual untuk mengedit
+                    // Mencegah drag saat mengedit
+                    textItem.style.cursor = 'auto';
+                    // Simpan referensi ke handler mousedown asli jika perlu dihapus sementara
+                    textItem._mousedownHandlerTemp = textItem._mousedownHandler; // Store original handler
+                    textItem.removeEventListener('mousedown', textItem._mousedownHandler); // Remove temporarily
+
+                    // Simpan perubahan saat blur
+                    textItem.addEventListener('blur', () => {
+                        textItem.contentEditable = false;
+                        textItem.classList.remove('editing');
+                        textItem.style.cursor = 'grab';
+                        // Tambahkan kembali fungsionalitas drag
+                        if (textItem._mousedownHandlerTemp) {
+                            textItem.addEventListener('mousedown', textItem._mousedownHandlerTemp); // Re-add original handler
+                            delete textItem._mousedownHandlerTemp; // Clean up temp reference
+                        }
+                        saveState(); // Save state after text edit
+                    }, { once: true }); // Hanya jalankan sekali
+                };
+                textItem._dblclickHandler = dblclickHandler; // Store reference for removal
+                textItem.addEventListener('dblclick', dblclickHandler);
+            }
+
+            // --- Control Panel Event Listeners ---
+
+            // Canvas Background Color
+            canvasBgColorInput.addEventListener('input', () => {
+                canvas.style.backgroundColor = canvasBgColorInput.value;
+            });
+            canvasBgColorInput.addEventListener('change', saveState); // Save on change
+
+            // Canvas Background Image
+            canvasBgImageInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        canvas.style.backgroundImage = `url('${e.target.result}')`;
+                        canvas.style.backgroundSize = 'cover';
+                        canvas.style.backgroundPosition = 'center';
+                        canvas.style.backgroundRepeat = 'no-repeat';
+                        saveState();
+                    };
+                    reader.readAsDataURL(file);
+                    event.target.value = ''; // Clear input
+                }
+            });
+
+            // Remove Canvas Background Image
+            canvasBgRemoveBtn.addEventListener('click', () => {
+                canvas.style.backgroundImage = 'none';
+                saveState();
+            });
+
+            // Canvas Zoom
+            canvasZoomInput.addEventListener('input', () => {
+                currentZoom = canvasZoomInput.value / 100;
+                canvasWrapper.style.transform = `scale(${currentZoom})`;
+                canvasZoomValue.textContent = `${canvasZoomInput.value}%`;
+            });
+
+            // Toggle Grid
+            toggleGridBtn.addEventListener('change', () => {
+                canvas.classList.toggle('grid-active', toggleGridBtn.checked);
+                saveState();
+            });
+
+            // Font Size
+            fontSizeInput.addEventListener('input', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.fontSize = `${fontSizeInput.value}px`;
+                    fontSizeValue.textContent = `${fontSizeInput.value}px`;
+                }
+            });
+            fontSizeInput.addEventListener('change', saveState); // Save on change (when user releases slider)
+
+            // Font Color
+            fontColorInput.addEventListener('input', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.color = fontColorInput.value;
+                }
+            });
+            fontColorInput.addEventListener('change', saveState);
+
+            // Font Family
+            fontFamilySelect.addEventListener('change', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.fontFamily = fontFamilySelect.value;
+                    saveState();
+                }
+            });
+
+            // Text Shadow
+            function updateTextShadow() {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    const color = textShadowColorInput.value;
+                    const x = textShadowXInput.value;
+                    const y = textShadowYInput.value;
+                    const blur = textShadowBlurInput.value;
+                    if (x === '0' && y === '0' && blur === '0') {
+                        selectedItem.style.textShadow = 'none';
+                    } else {
+                        selectedItem.style.textShadow = `${x}px ${y}px ${blur}px ${color}`;
+                    }
+                    textShadowXValue.textContent = `${x}px`;
+                    textShadowYValue.textContent = `${y}px`;
+                    textShadowBlurValue.textContent = `${blur}px`;
+                }
+            }
+            textShadowColorInput.addEventListener('input', updateTextShadow);
+            textShadowXInput.addEventListener('input', updateTextShadow);
+            textShadowYInput.addEventListener('input', updateTextShadow);
+            textShadowBlurInput.addEventListener('input', updateTextShadow);
+            textShadowColorInput.addEventListener('change', saveState);
+            textShadowXInput.addEventListener('change', saveState);
+            textShadowYInput.addEventListener('change', saveState);
+            textShadowBlurInput.addEventListener('change', saveState);
+
+
+            // Image Opacity
+            imageOpacityInput.addEventListener('input', () => {
+                if (selectedItem && selectedItem.classList.contains('image-item')) {
+                    selectedItem.style.opacity = imageOpacityInput.value / 100;
+                    imageOpacityValue.textContent = `${imageOpacityInput.value}%`;
+                }
+            });
+            imageOpacityInput.addEventListener('change', saveState);
+
+            // Image Filters
+            function applyImageFilters() {
+                if (selectedItem && selectedItem.classList.contains('image-item')) {
+                    const img = selectedItem.querySelector('img');
+                    const brightness = imageBrightnessInput.value;
+                    const contrast = imageContrastInput.value;
+                    const grayscale = imageGrayscaleInput.value;
+                    const sepia = imageSepiaInput.value;
+                    img.style.filter = `brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%) sepia(${sepia}%)`;
+                    imageBrightnessValue.textContent = `${brightness}%`;
+                    imageContrastValue.textContent = `${contrast}%`;
+                    imageGrayscaleValue.textContent = `${grayscale}%`;
+                    imageSepiaValue.textContent = `${sepia}%`;
+                }
+            }
+            imageBrightnessInput.addEventListener('input', applyImageFilters);
+            imageContrastInput.addEventListener('input', applyImageFilters);
+            imageGrayscaleInput.addEventListener('input', applyImageFilters);
+            imageSepiaInput.addEventListener('input', applyImageFilters);
+            imageBrightnessInput.addEventListener('change', saveState);
+            imageContrastInput.addEventListener('change', saveState);
+            imageGrayscaleInput.addEventListener('change', saveState);
+            imageSepiaInput.addEventListener('change', saveState);
+
+            // Image Transforms
+            imageRotateBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('image-item')) {
+                    const img = selectedItem.querySelector('img');
+                    img._rotate = (img._rotate || 0) + 90;
+                    img.style.transform = `rotate(${img._rotate}deg) scaleX(${img._flipX}) scaleY(${img._flipY})`;
+                    saveState();
+                }
+            });
+            imageFlipXBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('image-item')) {
+                    const img = selectedItem.querySelector('img');
+                    img._flipX = (img._flipX === 1) ? -1 : 1;
+                    img.style.transform = `rotate(${img._rotate}deg) scaleX(${img._flipX}) scaleY(${img._flipY})`;
+                    saveState();
+                }
+            });
+            imageFlipYBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('image-item')) {
+                    const img = selectedItem.querySelector('img');
+                    img._flipY = (img._flipY === 1) ? -1 : 1;
+                    img.style.transform = `rotate(${img._rotate}deg) scaleX(${img._flipX}) scaleY(${img._flipY})`;
+                    saveState();
+                }
+            });
+
+            // Shape Fill Color
+            shapeFillColorInput.addEventListener('input', () => {
+                if (selectedItem && selectedItem.classList.contains('shape-item')) {
+                    selectedItem.querySelector('svg > *').setAttribute('fill', shapeFillColorInput.value);
+                }
+            });
+            shapeFillColorInput.addEventListener('change', saveState);
+
+            // Shape Stroke Color
+            shapeStrokeColorInput.addEventListener('input', () => {
+                if (selectedItem && selectedItem.classList.contains('shape-item')) {
+                    selectedItem.querySelector('svg > *').setAttribute('stroke', shapeStrokeColorInput.value);
+                }
+            });
+            shapeStrokeColorInput.addEventListener('change', saveState);
+
+            // Shape Stroke Width
+            shapeStrokeWidthInput.addEventListener('input', () => {
+                if (selectedItem && selectedItem.classList.contains('shape-item')) {
+                    selectedItem.querySelector('svg > *').setAttribute('stroke-width', shapeStrokeWidthInput.value);
+                    shapeStrokeWidthValue.textContent = `${shapeStrokeWidthInput.value}px`;
+                }
+            });
+            shapeStrokeWidthInput.addEventListener('change', saveState);
+
+            // Duplicate Item
+            duplicateItemBtn.addEventListener('click', () => {
+                if (selectedItem) {
+                    // Temporarily remove resizers from the original before cloning to avoid cloning them
+                    removeResizers(selectedItem);
+                    
+                    const clonedItem = selectedItem.cloneNode(true); // Deep clone
+                    
+                    // Add resizers back to the original
+                    addResizers(selectedItem);
+
+                    // Adjust position slightly to make it visible
+                    clonedItem.style.left = `${parseFloat(selectedItem.style.left) + 20}px`;
+                    clonedItem.style.top = `${parseFloat(selectedItem.style.top) + 20}px`;
+                    clonedItem.style.zIndex = parseInt(selectedItem.style.zIndex) + 1 || 1; // Bring cloned item slightly forward
+                    
+                    // Remove 'selected' class and resizers from clone, then re-add draggable/editable
+                    clonedItem.classList.remove('selected');
+                    clonedItem.querySelectorAll('.resizer').forEach(r => r.remove()); // Ensure no resizers are cloned
+
+                    // Re-attach event listeners to the cloned item and its children if it's a group
+                    makeDraggable(clonedItem);
+                    if (clonedItem.classList.contains('text-item')) {
+                        makeEditable(clonedItem);
+                    }
+                    if (clonedItem.classList.contains('group-item')) {
+                        clonedItem.querySelectorAll('.draggable').forEach(child => {
+                            makeDraggable(child);
+                            if (child.classList.contains('text-item')) makeEditable(child);
+                        });
+                    }
+                    
+                    canvas.appendChild(clonedItem);
+                    selectItem(clonedItem); // Select the new duplicated item
+                    saveState();
+                } else {
+                    alert('Pilih item yang ingin diduplikasi terlebih dahulu.');
+                }
+            });
+
+            // Text Alignment
+            alignLeftBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.textAlign = 'left';
+                    updateControlPanel(selectedItem); // Update active state of buttons
+                    saveState();
+                }
+            });
+            alignCenterBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.textAlign = 'center';
+                    updateControlPanel(selectedItem);
+                    saveState();
+                }
+            });
+            alignRightBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.textAlign = 'right';
+                    updateControlPanel(selectedItem);
+                    saveState();
+                }
+            });
+
+            // Text Style (Bold, Italic, Underline)
+            boldBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.fontWeight = selectedItem.style.fontWeight === 'bold' ? 'normal' : 'bold';
+                    updateControlPanel(selectedItem);
+                    saveState();
+                }
+            });
+            italicBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.fontStyle = selectedItem.style.fontStyle === 'italic' ? 'normal' : 'italic';
+                    updateControlPanel(selectedItem);
+                    saveState();
+                }
+            });
+            underlineBtn.addEventListener('click', () => {
+                if (selectedItem && selectedItem.classList.contains('text-item')) {
+                    selectedItem.style.textDecoration = selectedItem.style.textDecoration.includes('underline') ? 'none' : 'underline';
+                    updateControlPanel(selectedItem);
+                    saveState();
+                }
+            });
+
+            // Align to Canvas
+            function alignItemToCanvas(position) {
+                if (!selectedItem) {
+                    alert('Pilih item terlebih dahulu.');
+                    return;
+                }
+                const canvasRect = canvas.getBoundingClientRect();
+                const itemRect = selectedItem.getBoundingClientRect();
+                let newLeft = parseFloat(selectedItem.style.left);
+                let newTop = parseFloat(selectedItem.style.top);
+
+                switch (position) {
+                    case 'left':
+                        newLeft = 0;
+                        break;
+                    case 'center-h':
+                        newLeft = (canvasRect.width / 2) - (itemRect.width / 2);
+                        break;
+                    case 'right':
+                        newLeft = canvasRect.width - itemRect.width;
+                        break;
+                    case 'top':
+                        newTop = 0;
+                        break;
+                    case 'center-v':
+                        newTop = (canvasRect.height / 2) - (itemRect.height / 2);
+                        break;
+                    case 'bottom':
+                        newTop = canvasRect.height - itemRect.height;
+                        break;
+                }
+                selectedItem.style.left = `${newLeft}px`;
+                selectedItem.style.top = `${newTop}px`;
+                saveState();
+            }
+
+            alignCanvasLeftBtn.addEventListener('click', () => alignItemToCanvas('left'));
+            alignCanvasCenterHBtn.addEventListener('click', () => alignItemToCanvas('center-h'));
+            alignCanvasRightBtn.addEventListener('click', () => alignItemToCanvas('right'));
+            alignCanvasTopBtn.addEventListener('click', () => alignItemToCanvas('top'));
+            alignCanvasCenterVBtn.addEventListener('click', () => alignItemToCanvas('center-v'));
+            alignCanvasBottomBtn.addEventListener('click', () => alignItemToCanvas('bottom'));
+
+
+            // Group Items
+            groupItemsBtn.addEventListener('click', () => {
+                const selectedDraggables = Array.from(canvas.querySelectorAll('.draggable.selected'));
+                if (selectedDraggables.length < 1) { // Allow grouping of a single item into a group
+                    alert('Pilih setidaknya satu item untuk digrup.');
+                    return;
+                }
+
+                // If only one item is selected and it's already a group, no need to re-group
+                if (selectedDraggables.length === 1 && selectedDraggables[0].classList.contains('group-item')) {
+                    alert('Item ini sudah merupakan grup.');
+                    return;
+                }
+
+                // Calculate bounding box of selected items
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                selectedDraggables.forEach(item => {
+                    const rect = item.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const itemLeft = rect.left - canvasRect.left;
+                    const itemTop = rect.top - canvasRect.top;
+                    const itemRight = itemLeft + rect.width;
+                    const itemBottom = itemTop + rect.height;
+
+                    minX = Math.min(minX, itemLeft);
+                    minY = Math.min(minY, itemTop);
+                    maxX = Math.max(maxX, itemRight);
+                    maxY = Math.max(maxY, itemBottom);
+                });
+
+                const groupDiv = document.createElement('div');
+                groupDiv.classList.add('draggable', 'group-item');
+                groupDiv.style.left = `${minX}px`;
+                groupDiv.style.top = `${minY}px`;
+                groupDiv.style.width = `${maxX - minX}px`;
+                groupDiv.style.height = `${maxY - minY}px`;
+                groupDiv.style.zIndex = Math.max(...selectedDraggables.map(item => parseInt(item.style.zIndex) || 0)) + 1; // Z-index slightly above children
+
+                // Move selected items into the group div
+                selectedDraggables.forEach(item => {
+                    // Adjust child's position relative to the new group's top-left corner
+                    item.style.left = `${parseFloat(item.style.left) - minX}px`;
+                    item.style.top = `${parseFloat(item.style.top) - minY}px`;
+                    groupDiv.appendChild(item);
+                });
+
+                canvas.appendChild(groupDiv);
+                makeDraggable(groupDiv);
+                selectItem(groupDiv); // Select the new group
+                saveState();
+            });
+
+            // Ungroup Items
+            ungroupItemsBtn.addEventListener('click', () => {
+                if (!selectedItem || !selectedItem.classList.contains('group-item')) {
+                    alert('Pilih grup untuk membatalkan pengelompokan.');
+                    return;
+                }
+
+                const groupDiv = selectedItem;
+                const groupLeft = parseFloat(groupDiv.style.left);
+                const groupTop = parseFloat(groupDiv.style.top);
+
+                // Move children back to canvas and adjust their positions
+                Array.from(groupDiv.children).forEach(child => {
+                    if (child.classList.contains('draggable')) { // Ensure it's a draggable child
+                        child.style.left = `${parseFloat(child.style.left) + groupLeft}px`;
+                        child.style.top = `${parseFloat(child.style.top) + groupTop}px`;
+                        canvas.appendChild(child);
+                        makeDraggable(child); // Re-attach draggable listeners
+                        if (child.classList.contains('text-item')) {
+                            makeEditable(child); // Re-attach editable listeners
+                        }
+                    }
+                });
+
+                groupDiv.remove(); // Remove the empty group div
+                selectedItem = null; // Deselect after ungrouping
+                resetControlPanel();
+                saveState();
+            });
+
+
+            // Bring Forward (Z-index)
+            bringForwardBtn.addEventListener('click', () => {
+                if (selectedItem) {
+                    let currentZIndex = parseInt(selectedItem.style.zIndex) || 0;
+                    selectedItem.style.zIndex = currentZIndex + 1;
+                    saveState();
+                }
+            });
+
+            // Send Backward (Z-index)
+            sendBackwardBtn.addEventListener('click', () => {
+                if (selectedItem) {
+                    let currentZIndex = parseInt(selectedItem.style.zIndex) || 0;
+                    selectedItem.style.zIndex = Math.max(0, currentZIndex - 1); // Mencegah z-index negatif
+                    saveState();
+                }
+            });
+
+            // Tombol Hapus Item
+            deleteItemBtn.addEventListener('click', () => {
+                if (selectedItem) {
+                    if (confirm('Anda yakin ingin menghapus item ini?')) {
+                        selectedItem.remove();
+                        selectedItem = null;
+                        resetControlPanel(); // Reset kontrol setelah penghapusan
+                        saveState(); // Save state after deletion
+                    }
+                } else {
+                    alert('Pilih item yang ingin dihapus terlebih dahulu.');
+                }
+            });
+
+            // Hapus Item dengan tombol 'Delete'
+            document.addEventListener('keydown', (e) => {
+                if (selectedItem && e.key === 'Delete' && !e.target.isContentEditable) { // Mencegah penghapusan saat mengedit teks
+                    if (confirm('Anda yakin ingin menghapus item ini?')) {
+                        selectedItem.remove();
+                        selectedItem = null;
+                        resetControlPanel(); // Reset kontrol setelah penghapusan
+                        saveState(); // Save state after deletion
+                    }
+                }
+            });
+
+            // Reset Canvas Button
+            resetCanvasBtn.addEventListener('click', () => {
+                if (confirm('Ini akan menghapus semua item di kanvas dan pengaturan latar belakang. Lanjutkan?')) {
+                    canvas.innerHTML = ''; // Clear all children
+                    canvas.style.backgroundColor = '#ffffff'; // Reset background color
+                    canvas.style.backgroundImage = 'none'; // Reset background image
+                    canvas.classList.remove('grid-active'); // Remove grid
+                    toggleGridBtn.checked = false; // Uncheck grid toggle
+                    canvasBgColorInput.value = '#ffffff'; // Reset color picker
+                    selectedItem = null;
+                    resetControlPanel();
+                    saveState(); // Save state after reset
+                }
+            });
+
+            // --- Undo/Redo Buttons ---
+            undoBtn.addEventListener('click', () => {
+                if (historyPointer > 0) {
+                    historyPointer--;
+                    loadState(historyPointer);
+                }
+            });
+
+            redoBtn.addEventListener('click', () => {
+                if (historyPointer < history.length - 1) {
+                    historyPointer++;
+                    loadState(historyPointer);
+                }
+            });
+
+
+            // --- Download Functionality ---
+            downloadBtn.addEventListener('click', () => {
+                // Deselect any selected item before capturing to avoid border in image
+                selectItem(null);
+
+                // Use html2canvas to capture the content of the #canvas div
+                html2canvas(canvas, {
+                    // Use a higher scale for better quality, but it might increase processing time
+                    scale: 2,
+                    // Set background color to white to ensure transparency is handled correctly
+                    backgroundColor: canvas.style.backgroundColor || '#ffffff', // Use canvas background color
+                    // Ignore elements with 'data-html2canvas-ignore' attribute
+                    ignoreElements: (element) => {
+                        return element.classList.contains('resizer');
+                    }
+                }).then(canvasImage => {
+                    // Create a temporary link element
+                    const link = document.createElement('a');
+                    // Set the download filename
+                    link.download = 'desain-kustom.png';
+                    // Convert the captured canvas to a PNG data URL and set it as the link's href
+                    link.href = canvasImage.toDataURL('image/png');
+                    // Programmatically click the link to trigger the download
+                    document.body.appendChild(link); // Append to body is good practice for programmatic clicks
+                    link.click();
+                    document.body.removeChild(link); // Remove the link after click
+                }).catch(error => {
+                    console.error('Error capturing canvas:', error);
+                    alert('Gagal mengunduh desain. Silakan coba lagi.');
+                });
+            });
+
+
+            // Initial setup
+            resetControlPanel();
+            saveState(); // Save initial empty state
+        });
+    </script>
+</body>
+</html>
