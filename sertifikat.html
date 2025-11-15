@@ -180,7 +180,10 @@
                         <label for="jabatan_penandatangan" class="block text-sm font-medium text-gray-700">Jabatan Penandatangan</label>
                         <input type="text" id="jabatan_penandatangan" value="Founder / CEO Diklat Online" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
-                    
+                    <div>
+                        <label for="judul_header" class="block text-sm font-medium text-gray-700">Teks Judul Header</label>
+                        <input type="text" id="judul_header" value="DiklatOnline" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
                     <div>
                         <label for="logo_kiri" class="block text-sm font-medium text-gray-700">Unggah Logo Kiri</label>
                         <input type="file" id="logo_kiri" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
@@ -281,7 +284,7 @@
                         <header class="text-center mb-2">
                             <div class="relative flex items-center justify-center">
                                 <img id="preview-logo_kiri" src="" alt="Logo Kiri" class="h-14 absolute left-0 top-1/2 -translate-y-1/2" style="display:none;">
-                                <h1 class="text-2xl font-bold text-gray-700">DiklatOnline</h1>
+                                <h1 id="preview-judul_header" class="text-2xl font-bold text-gray-700">DiklatOnline</h1>
                                 <img id="preview-logo_kanan" src="" alt="Logo Kanan" class="h-14 absolute right-0 top-1/2 -translate-y-1/2" style="display:none;">
                             </div>
 
@@ -415,6 +418,7 @@
             nama_perusahaan: document.getElementById('nama_perusahaan'),
             penandatangan: document.getElementById('penandatangan'),
             jabatan_penandatangan: document.getElementById('jabatan_penandatangan'),
+            judul_header: document.getElementById('judul_header'),
             warna_border: document.getElementById('warna_border'),
             warna_judul: document.getElementById('warna_judul'),
             logo_kiri: document.getElementById('logo_kiri'),
@@ -454,6 +458,7 @@
 
             const defaultPenandatangan = formInputs.penandatangan.value;
             const defaultJabatanPenandatangan = formInputs.jabatan_penandatangan.value;
+            const defaultJudulHeader = formInputs.judul_header ? formInputs.judul_header.value : 'DiklatOnline';
 
             const defaultHasilEvaluasi = formInputs.hasil_evaluasi ? formInputs.hasil_evaluasi.value : 'SANGAT BAIK';
 
@@ -490,6 +495,11 @@
                     valueContainerEl.style.display = 'none';
                 }
             });
+
+            const judulHeaderEl = document.getElementById('preview-judul_header');
+            if (judulHeaderEl) {
+                judulHeaderEl.textContent = defaultJudulHeader;
+            }
 
             document.getElementById('preview-pelatihan').textContent = data.pelatihan || defaultPelatihan;
             document.getElementById('preview-tanggal_pelatihan').textContent = data.tanggal_pelatihan || defaultTanggalPelatihan;
@@ -728,7 +738,7 @@
             clearParticipantForm();
         });
         
-        ['pelatihan', 'tanggal_pelatihan', 'lokasi_tanggal_terbit', 'nama_perusahaan', 'penandatangan', 'jabatan_penandatangan', 'hasil_evaluasi', 'warna_border', 'warna_judul'].forEach(id => {
+        ['pelatihan', 'tanggal_pelatihan', 'lokasi_tanggal_terbit', 'nama_perusahaan', 'penandatangan', 'jabatan_penandatangan', 'judul_header', 'hasil_evaluasi', 'warna_border', 'warna_judul'].forEach(id => {
             formInputs[id].addEventListener('input', () => {
                 const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
                 updatePreview(currentData);
