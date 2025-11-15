@@ -194,6 +194,10 @@
                         <input type="file" id="logo_seal" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
                     </div>
                     <div>
+                        <label for="logo_didukung" class="block text-sm font-medium text-gray-700">Unggah Logo "Didukung oleh" (opsional)</label>
+                        <input type="file" id="logo_didukung" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <div>
                         <label for="tanda_tangan" class="block text-sm font-medium text-gray-700">Unggah Gambar Tanda Tangan</label>
                         <input type="file" id="tanda_tangan" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
@@ -330,6 +334,8 @@
 
                         <footer class="mt-2 flex justify-between items-end">
                             <div class="flex flex-col items-start gap-1">
+                                <p class="text-[10px] leading-tight text-gray-600">Didukung oleh:</p>
+                                <img id="preview-logo_didukung" src="" alt="Logo Didukung oleh" class="h-6 mb-1 object-contain" style="display:none;">
                                 <img id="preview-qr_code" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Sertifikat" alt="QR Code" class="h-16 w-16" onerror="this.onerror=null;this.src='https://placehold.co/72x72/e2e8f0/000000?text=QR';">
                                 <p id="preview-nama_perusahaan" class="text-[10px] leading-tight">PT Sumber Belajar Bersama</p>
                             </div>
@@ -351,6 +357,9 @@
         let participants = [];
         let logoKiriUrl = "";
         let logoKananUrl = "";
+        let logoSealUrl = "";
+        let logoDidukungUrl = "";
+
         let tandaTanganUrl = "https://placehold.co/120x60/ffffff/000000/png?text=TTD";
         let selectedParticipantIndex = -1;
 
@@ -412,6 +421,7 @@
             logo_kanan: document.getElementById('logo_kanan'),
             logo_seal: document.getElementById('logo_seal'),
             tanda_tangan: document.getElementById('tanda_tangan'),
+            logo_didukung: document.getElementById('logo_didukung'),
         };
 
         // --- FUNCTIONS ---
@@ -525,6 +535,28 @@
                 } else {
                     logoKananImg.src = '';
                     logoKananImg.style.display = 'none';
+                }
+            }
+
+            const logoSealImg = document.getElementById('preview-logo_seal');
+            if (logoSealImg) {
+                if (logoSealUrl) {
+                    logoSealImg.src = logoSealUrl;
+                    logoSealImg.style.display = '';
+                } else {
+                    logoSealImg.src = '';
+                    logoSealImg.style.display = 'none';
+                }
+            }
+
+            const logoDidukungImg = document.getElementById('preview-logo_didukung');
+            if (logoDidukungImg) {
+                if (logoDidukungUrl) {
+                    logoDidukungImg.src = logoDidukungUrl;
+                    logoDidukungImg.style.display = '';
+                } else {
+                    logoDidukungImg.src = '';
+                    logoDidukungImg.style.display = 'none';
                 }
             }
 
@@ -738,6 +770,32 @@
                 logoKananImg.style.display = 'none';
             }
         });
+
+        if (formInputs.logo_seal) {
+            formInputs.logo_seal.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    logoSealUrl = URL.createObjectURL(file);
+                } else {
+                    logoSealUrl = '';
+                }
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
+            });
+        }
+
+        if (formInputs.logo_didukung) {
+            formInputs.logo_didukung.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    logoDidukungUrl = URL.createObjectURL(file);
+                } else {
+                    logoDidukungUrl = '';
+                }
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
+            });
+        }
 
         formInputs.tanda_tangan.addEventListener('change', (e) => {
             const file = e.target.files[0];
