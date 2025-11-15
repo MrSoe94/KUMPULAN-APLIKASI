@@ -194,8 +194,8 @@
                         <input type="file" id="logo_seal" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
                     </div>
                     <div>
-                        <label for="logo_didukung" class="block text-sm font-medium text-gray-700">Unggah Logo "Didukung oleh" (opsional)</label>
-                        <input type="file" id="logo_didukung" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <label for="logo_didukung" class="block text-sm font-medium text-gray-700">Unggah Logo "Didukung oleh" (bisa lebih dari satu)</label>
+                        <input type="file" id="logo_didukung" accept="image/*" multiple class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
                     <div>
                         <label for="tanda_tangan" class="block text-sm font-medium text-gray-700">Unggah Gambar Tanda Tangan</label>
@@ -334,8 +334,8 @@
 
                         <footer class="mt-2 flex justify-between items-end">
                             <div class="flex flex-col items-start gap-1">
-                                <p class="text-[10px] leading-tight text-gray-600">Didukung oleh:</p>
-                                <img id="preview-logo_didukung" src="" alt="Logo Didukung oleh" class="h-6 mb-1 object-contain" style="display:none;">
+                                <p id="preview-logo_didukung_label" class="text-[10px] leading-tight text-gray-600" style="display:none;">Didukung oleh:</p>
+                                <div id="preview-logo_didukung_container" class="flex flex-wrap gap-1 mb-1"></div>
                                 <img id="preview-qr_code" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Sertifikat" alt="QR Code" class="h-16 w-16" onerror="this.onerror=null;this.src='https://placehold.co/72x72/e2e8f0/000000?text=QR';">
                                 <p id="preview-nama_perusahaan" class="text-[10px] leading-tight">PT Sumber Belajar Bersama</p>
                             </div>
@@ -358,7 +358,7 @@
         let logoKiriUrl = "";
         let logoKananUrl = "";
         let logoSealUrl = "";
-        let logoDidukungUrl = "";
+
 
         let tandaTanganUrl = "https://placehold.co/120x60/ffffff/000000/png?text=TTD";
         let selectedParticipantIndex = -1;
@@ -546,17 +546,6 @@
                 } else {
                     logoSealImg.src = '';
                     logoSealImg.style.display = 'none';
-                }
-            }
-
-            const logoDidukungImg = document.getElementById('preview-logo_didukung');
-            if (logoDidukungImg) {
-                if (logoDidukungUrl) {
-                    logoDidukungImg.src = logoDidukungUrl;
-                    logoDidukungImg.style.display = '';
-                } else {
-                    logoDidukungImg.src = '';
-                    logoDidukungImg.style.display = 'none';
                 }
             }
 
@@ -786,14 +775,24 @@
 
         if (formInputs.logo_didukung) {
             formInputs.logo_didukung.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    logoDidukungUrl = URL.createObjectURL(file);
-                } else {
-                    logoDidukungUrl = '';
+                const container = document.getElementById('preview-logo_didukung_container');
+                const label = document.getElementById('preview-logo_didukung_label');
+                if (!container) return;
+
+                container.innerHTML = '';
+                const files = Array.from(e.target.files || []);
+
+                files.forEach(file => {
+                    const url = URL.createObjectURL(file);
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.className = 'h-6 object-contain';
+                    container.appendChild(img);
+                });
+
+                if (label) {
+                    label.style.display = files.length > 0 ? '' : 'none';
                 }
-                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
-                updatePreview(currentData);
             });
         }
 
