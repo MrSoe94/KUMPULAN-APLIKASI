@@ -173,8 +173,12 @@
                         <input type="text" id="penandatangan" value="Muhammad Khoiron, M.Pd" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="logo_kiri" class="block text-sm font-medium text-gray-700">Unggah Logo</label>
+                        <label for="logo_kiri" class="block text-sm font-medium text-gray-700">Unggah Logo Kiri</label>
                         <input type="file" id="logo_kiri" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                    <div>
+                        <label for="logo_kanan" class="block text-sm font-medium text-gray-700">Unggah Logo Kanan (opsional)</label>
+                        <input type="file" id="logo_kanan" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
                     <div>
                         <label for="logo_seal" class="block text-sm font-medium text-gray-700">Unggah Logo Seal (opsional)</label>
@@ -265,7 +269,9 @@
                             <div class="relative flex items-center justify-center">
                                 <img id="preview-logo_kiri" src="" alt="Logo Kiri" class="h-14 absolute left-0 top-1/2 -translate-y-1/2" style="display:none;">
                                 <h1 class="text-2xl font-bold text-gray-700">DiklatOnline</h1>
+                                <img id="preview-logo_kanan" src="" alt="Logo Kanan" class="h-14 absolute right-0 top-1/2 -translate-y-1/2" style="display:none;">
                             </div>
+
                             <div class="seal my-3">
                                 <div class="seal-inner flex items-center justify-center overflow-hidden">
                                     <img id="preview-logo_seal" src="" alt="Logo Seal" class="max-h-full max-w-full object-contain" style="display:none;">
@@ -335,6 +341,7 @@
         // --- APLIKASI STATE ---
         let participants = [];
         let logoKiriUrl = "";
+        let logoKananUrl = "";
         let tandaTanganUrl = "https://placehold.co/120x60/ffffff/000000/png?text=TTD";
         let selectedParticipantIndex = -1;
 
@@ -390,6 +397,7 @@
             warna_border: document.getElementById('warna_border'),
             warna_judul: document.getElementById('warna_judul'),
             logo_kiri: document.getElementById('logo_kiri'),
+            logo_kanan: document.getElementById('logo_kanan'),
             logo_seal: document.getElementById('logo_seal'),
             tanda_tangan: document.getElementById('tanda_tangan'),
         };
@@ -479,6 +487,18 @@
                 } else {
                     logoKiriImg.src = '';
                     logoKiriImg.style.display = 'none';
+                }
+            }
+
+            const logoKananImg = document.getElementById('preview-logo_kanan');
+            const effectiveLogoKanan = logoKananUrl;
+            if (logoKananImg) {
+                if (effectiveLogoKanan) {
+                    logoKananImg.src = effectiveLogoKanan;
+                    logoKananImg.style.display = '';
+                } else {
+                    logoKananImg.src = '';
+                    logoKananImg.style.display = 'none';
                 }
             }
 
@@ -670,19 +690,19 @@
             }
         });
 
-        // Upload logo seal (di tengah lingkaran)
-        formInputs.logo_seal.addEventListener('change', (e) => {
+        formInputs.logo_kanan.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            const sealImg = document.getElementById('preview-logo_seal');
-            if (!sealImg) return;
+            const logoKananImg = document.getElementById('preview-logo_kanan');
+            if (!logoKananImg) return;
 
             if (file) {
-                const url = URL.createObjectURL(file);
-                sealImg.src = url;
-                sealImg.style.display = '';
+                logoKananUrl = URL.createObjectURL(file);
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
             } else {
-                sealImg.src = '';
-                sealImg.style.display = 'none';
+                logoKananUrl = '';
+                logoKananImg.src = '';
+                logoKananImg.style.display = 'none';
             }
         });
 
