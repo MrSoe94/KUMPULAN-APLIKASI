@@ -6,7 +6,7 @@
     <title>Aplikasi Generator Sertifikat Profesional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Updated Google Fonts import to include more font families -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Lora:wght@400;700&family=Merriweather:wght@4400;700&family=Montserrat:wght@4400;700&family=Open+Sans:wght@4400;700&family=Pacifico&family=Sacramento&family=Oswald:wght@4400;700&family=Great+Vibes&family=Allura&family=Dancing+Script&family=Lato&family=Poppins&family=Crimson+Pro&family=Bodoni+Moda&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Lora:wght@400;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Pacifico&family=Sacramento&family=Oswald:wght@400;700&family=Great+Vibes&family=Allura&family=Dancing+Script&family=Lato:wght@400;700&family=Poppins:wght@400;700&family=Crimson+Pro:wght@400;700&family=Bodoni+Moda:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> <!-- Added html2canvas for download -->
     <!-- New: jsPDF library for PDF export -->
@@ -52,6 +52,18 @@
             justify-content: center;
             text-align: center;
         }
+        .template-thumbnail canvas,
+        .template-thumbnail .overlay {
+            display: block;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
         .template-thumbnail .overlay {
             background-color: rgba(0,0,0,0.3);
             color: white;
@@ -62,6 +74,8 @@
             position: absolute;
             bottom: 0;
             width: 100%;
+            pointer-events: none;
+            z-index: 2;
         }
         .template-thumbnail.selected {
             border-color: #1d4ed8;
@@ -174,19 +188,53 @@
                 <!-- NEW: Back of Certificate Content -->
                 <section>
                     <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">3. Konten Belakang Sertifikat</h2>
-                    <p class="text-sm text-gray-600 mb-4">Isi detail materi, narasumber, dan jadwal di sini.</p>
+                    <p class="text-sm text-gray-600 mb-4">Isi tabel materi dan narasumber berikut. Maksimal 10 baris.</p>
                     <div class="space-y-3">
-                        <div>
-                            <label for="back-field-materi" class="block text-sm font-medium text-gray-700">Daftar Materi</label>
-                            <textarea id="back-field-materi" rows="5" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Contoh:&#10;- Pengenalan HTML & CSS (09:00 - 10:30)&#10;- JavaScript Dasar (10:45 - 12:00)&#10;- Studi Kasus Proyek (13:00 - 14:30)"></textarea>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Narasumber</label>
+                                <input id="back-speaker-input" type="text" class="mt-1 w-full border rounded-md p-2 text-sm" placeholder="Nama Narasumber">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700">Materi</label>
+                                <input id="back-topic-input" type="text" class="mt-1 w-full border rounded-md p-2 text-sm" placeholder="Judul Materi">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Waktu</label>
+                                <input id="back-time-input" type="text" class="mt-1 w-full border rounded-md p-2 text-sm" placeholder="08.00-10.00">
+                            </div>
                         </div>
-                        <div>
-                            <label for="back-field-narasumber" class="block text-sm font-medium text-gray-700">Daftar Narasumber</label>
-                            <textarea id="back-field-narasumber" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Contoh:&#10;- Budi Santoso, S.T., M.Kom&#10;- Dr. Indah Permata, M.Eng"></textarea>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                            <div class="md:col-span-1">
+                                <label class="block text-sm font-medium text-gray-700">JP</label>
+                                <input id="back-hours-input" type="number" min="1" max="20" class="mt-1 w-full border rounded-md p-2 text-sm" placeholder="2">
+                            </div>
+                            <div class="md:col-span-3 flex justify-end mt-2 md:mt-0">
+                                <button id="back-add-row-btn" type="button" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition flex items-center gap-2">
+                                    <i class="fas fa-plus"></i>
+                                    Tambah Sesi
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <label for="back-field-jam" class="block text-sm font-medium text-gray-700">Jam Pelaksanaan</label>
-                            <input type="text" id="back-field-jam" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Contoh: 09:00 - 16:00 WIB">
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-center font-semibold text-gray-700 w-12">No</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Narasumber</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Materi</th>
+                                        <th class="px-3 py-2 text-left font-semibold text-gray-700 w-32">Waktu</th>
+                                        <th class="px-3 py-2 text-center font-semibold text-gray-700 w-16">JP</th>
+                                        <th class="px-3 py-2 text-center font-semibold text-gray-700 w-16">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="back-sessions-body" class="divide-y divide-gray-200">
+                                    <!-- Baris sesi akan di-render oleh JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-xs text-gray-500">Gunakan form di atas untuk menambah sesi (maks. 10 baris).</p>
                         </div>
                     </div>
                 </section>
@@ -288,8 +336,12 @@
                     </div>
                 </section>
 
-                <!-- 6. Kustomisasi Elemen Terpilih -->
-                <section id="element-controls-section">
+            </div>
+
+            <!-- Kolom Pratinjau -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold mb-4 text-center text-blue-700">Pratinjau Sertifikat</h2>
+                <section id="element-controls-section" class="mb-6 hidden">
                     <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-700">6. Kustomisasi Elemen Terpilih</h2>
                     <p id="element-selection-hint" class="text-gray-600 mb-4">Pilih teks atau logo di pratinjau untuk mengeditnya.</p>
                     <div id="font-controls" class="space-y-3 hidden">
@@ -352,12 +404,6 @@
                         </div>
                     </div>
                 </section>
-
-            </div>
-
-            <!-- Kolom Pratinjau -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4 text-center text-blue-700">Pratinjau Sertifikat</h2>
                 <div class="flex justify-center gap-4 mb-4">
                     <button id="view-front-btn" class="tab-button p-2 rounded-md text-sm font-medium active">Depan Sertifikat</button>
                     <button id="view-back-btn" class="tab-button p-2 rounded-md text-sm font-medium">Belakang Sertifikat</button>
@@ -438,9 +484,9 @@
 
             // NEW: Back of Certificate Text Fields
             const backTextFields = {
-                materi: document.getElementById('back-field-materi'),
-                narasumber: document.getElementById('back-field-narasumber'),
-                jam: document.getElementById('back-field-jam'),
+                backMateri: document.getElementById('back-field-materi'),
+                backNarasumber: document.getElementById('back-field-narasumber'),
+                backJam: document.getElementById('back-field-jam'),
             };
 
             // Element controls (font/image)
@@ -495,6 +541,14 @@
             const resetAllDataBtn = document.getElementById('reset-all-data-btn');
             const clearTextFieldsBtn = document.getElementById('clear-text-inputs-btn');
 
+            // Back sessions table DOM
+            const backSessionsBody = document.getElementById('back-sessions-body');
+            const backAddRowBtn = document.getElementById('back-add-row-btn');
+            const backSpeakerInputEl = document.getElementById('back-speaker-input');
+            const backTopicInputEl = document.getElementById('back-topic-input');
+            const backTimeInputEl = document.getElementById('back-time-input');
+            const backHoursInputEl = document.getElementById('back-hours-input');
+
             // Custom Modal Elements
             const customModalOverlay = document.getElementById('custom-modal-overlay');
             const modalMessage = document.getElementById('modal-message');
@@ -504,6 +558,9 @@
 
             // === STATE ===
             let recipients = [];
+            let nextSerialNumber = 1;
+            let backSessions = [];
+
             let currentRecipientIndex = -1;
             let currentTemplateId = 'professional'; // Default template ID
             let templateImage = new Image();
@@ -520,6 +577,328 @@
             let currentView = 'front'; // 'front' or 'back' // NEW
 
             const LOCAL_STORAGE_KEY = 'certificateGeneratorState';
+            const SERIAL_PREFIX = 'INST-2025-';
+
+            // === Helper functions (hoisted) ===
+            function showModal(message, confirm = false) {
+                return new Promise((resolve) => {
+                    const overlay = document.getElementById('custom-modal-overlay');
+                    const msg = document.getElementById('modal-message');
+                    const ok = document.getElementById('modal-ok-btn');
+                    const cancel = document.getElementById('modal-cancel-btn');
+                    if (!overlay || !msg || !ok || !cancel) {
+                        if (confirm) resolve(window.confirm(message || 'Lanjutkan?'));
+                        else { window.alert(message || 'Info'); resolve(true); }
+                        return;
+                    }
+                    msg.textContent = message || '';
+                    overlay.classList.remove('hidden');
+                    if (confirm) cancel.classList.remove('hidden'); else cancel.classList.add('hidden');
+                    const cleanup = () => {
+                        overlay.classList.add('hidden');
+                        ok.onclick = null; cancel.onclick = null;
+                    };
+                    ok.onclick = () => { cleanup(); resolve(true); };
+                    cancel.onclick = () => { cleanup(); resolve(false); };
+                });
+            }
+
+            function showLoading(flag) {
+                document.body.style.cursor = flag ? 'progress' : 'default';
+            }
+
+            function generateSerial() {
+                const num = String(nextSerialNumber++).padStart(4, '0');
+                return `${SERIAL_PREFIX}${num}`;
+            }
+
+            function drawTemplateBackground(templateId) {
+                const tpl = (hardcodedTemplates || []).find(t => t.id === templateId) || hardcodedTemplates[0];
+                if (tpl && typeof tpl.draw === 'function') tpl.draw(ctx, canvas.width, canvas.height);
+            }
+
+            function selectProvidedTemplate(templateId) {
+                currentTemplateId = templateId;
+                isCustomImageLoaded = false;
+                templateImage.src = '';
+                drawCertificate();
+                saveState();
+                if (templateThumbnailsContainer) {
+                    Array.from(templateThumbnailsContainer.querySelectorAll('.template-thumbnail')).forEach(el => {
+                        el.classList.toggle('selected', el.dataset.id === templateId);
+                    });
+                }
+            }
+
+            function selectCustomTemplateImage(src) {
+                isCustomImageLoaded = true;
+                templateImage.onload = () => { drawCertificate(); saveState(); };
+                templateImage.onerror = () => { isCustomImageLoaded = false; showModal('Gambar template gagal dimuat.'); };
+                templateImage.src = src;
+            }
+
+            function switchTab(tabs, activeKey, contents) {
+                Object.entries(tabs).forEach(([key, btn]) => {
+                    if (!btn) return; btn.classList.toggle('active', key === activeKey);
+                });
+                Object.entries(contents).forEach(([key, el]) => {
+                    if (!el) return; el.classList.toggle('hidden', key !== activeKey);
+                });
+            }
+
+            function renderRecipientTable() {
+                if (!recipientTableBody) return;
+                recipientTableBody.innerHTML = '';
+                if (recipients.length === 0) {
+                    const tr = document.createElement('tr');
+                    tr.className = 'placeholder-row';
+                    const td = document.createElement('td');
+                    td.colSpan = 5; td.className = 'text-center p-4 text-gray-400';
+                    td.textContent = 'Belum ada data penerima.'; tr.appendChild(td);
+                    recipientTableBody.appendChild(tr);
+                    updateRecipientIndicator();
+                    return;
+                }
+                recipients.forEach((rec, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-2">${rec.name}</td>
+                        <td class="px-4 py-2">${rec.jabatan || ''}</td>
+                        <td class="px-4 py-2">${rec.nip || ''}</td>
+                        <td class="px-4 py-2">${rec.nuptk || ''}</td>
+                        <td class="px-4 py-2 text-center">
+                          <button class="text-blue-600 hover:underline btn-edit" data-index="${idx}">Edit</button>
+                          <span class="mx-1">|</span>
+                          <button class="text-red-600 hover:underline btn-delete" data-index="${idx}">Hapus</button>
+                        </td>`;
+                    recipientTableBody.appendChild(tr);
+                });
+                if (typeof handleEdit === 'function') recipientTableBody.querySelectorAll('.btn-edit').forEach(b => b.addEventListener('click', handleEdit));
+                if (typeof handleDelete === 'function') recipientTableBody.querySelectorAll('.btn-delete').forEach(b => b.addEventListener('click', handleDelete));
+                updateRecipientIndicator();
+            }
+
+            function updateRecipientIndicator() {
+                if (!previewIndicator) return;
+                const total = recipients.length;
+                const current = currentRecipientIndex >= 0 ? currentRecipientIndex + 1 : 0;
+                previewIndicator.textContent = `Penerima ${current} / ${total}`;
+                if (prevBtn) prevBtn.disabled = currentRecipientIndex <= 0;
+                if (nextBtn) nextBtn.disabled = currentRecipientIndex >= total - 1 || total === 0;
+            }
+
+            function renderLogoThumbnails() {
+                if (!logoListContainer) return;
+                const logos = draggableElements.filter(el => el.type === 'image');
+                logoListContainer.innerHTML = '';
+                if (logos.length === 0) { if (noLogosMessage) noLogosMessage.classList.remove('hidden'); return; }
+                if (noLogosMessage) noLogosMessage.classList.add('hidden');
+                logos.forEach(logo => {
+                    const wrapper = document.createElement('div'); wrapper.className = 'relative';
+                    const img = document.createElement('img'); img.src = logo.src; img.className = 'logo-thumbnail';
+                    const del = document.createElement('button'); del.textContent = 'Hapus'; del.className = 'absolute -bottom-2 left-1/2 -translate-x-1/2 text-xs text-white bg-red-600 px-1.5 py-0.5 rounded'; del.dataset.id = logo.id; del.addEventListener('click', handleDeleteLogo);
+                    wrapper.appendChild(img); wrapper.appendChild(del); logoListContainer.appendChild(wrapper);
+                });
+            }
+
+            function renderTemplateThumbnails() {
+                if (!templateThumbnailsContainer) return;
+                templateThumbnailsContainer.innerHTML = '';
+                (hardcodedTemplates || []).forEach(tpl => {
+                    const div = document.createElement('div');
+                    div.className = 'template-thumbnail bg-gray-200';
+                    div.dataset.id = tpl.id;
+                    div.style.cursor = 'pointer';
+                    div.setAttribute('role', 'button');
+                    div.setAttribute('tabindex', '0');
+
+                    const thumbCanvas = document.createElement('canvas');
+                    // Set a fixed internal resolution for crisp preview, CSS will scale
+                    thumbCanvas.width = 280;
+                    thumbCanvas.height = 180;
+                    thumbCanvas.style.width = '100%';
+                    thumbCanvas.style.height = '100%';
+                    thumbCanvas.style.display = 'block';
+                    const tctx = thumbCanvas.getContext('2d');
+                    // Fill background white to avoid transparency
+                    tctx.fillStyle = '#ffffff';
+                    tctx.fillRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+                    try {
+                        if (tpl && typeof tpl.draw === 'function') tpl.draw(tctx, thumbCanvas.width, thumbCanvas.height);
+                    } catch (e) {
+                        // ignore drawing error in thumbnail
+                    }
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'overlay';
+                    overlay.textContent = tpl.name;
+                    overlay.style.pointerEvents = 'none';
+
+                    div.appendChild(thumbCanvas);
+                    div.appendChild(overlay);
+                    if (tpl.id === currentTemplateId) div.classList.add('selected');
+                    templateThumbnailsContainer.appendChild(div);
+                });
+                // Event delegation: ensure any click inside a card selects the template precisely
+                templateThumbnailsContainer.onclick = (ev) => {
+                    const card = ev.target.closest('.template-thumbnail');
+                    if (!card || !templateThumbnailsContainer.contains(card)) return;
+                    const id = card.dataset.id;
+                    if (id) selectProvidedTemplate(id);
+                };
+                // Keyboard support
+                templateThumbnailsContainer.onkeydown = (ev) => {
+                    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+                    const card = ev.target.closest('.template-thumbnail');
+                    if (!card) return;
+                    ev.preventDefault();
+                    const id = card.dataset.id;
+                    if (id) selectProvidedTemplate(id);
+                };
+            }
+
+            function renderBackSessionsTable() {
+                if (!backSessionsBody) return;
+                backSessionsBody.innerHTML = '';
+                if (!Array.isArray(backSessions) || backSessions.length === 0) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = 6;
+                    td.className = 'px-4 py-3 text-center text-gray-400';
+                    td.textContent = 'Belum ada sesi ditambahkan.';
+                    tr.appendChild(td);
+                    backSessionsBody.appendChild(tr);
+                    return;
+                }
+                backSessions.forEach((s, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-3 py-2 text-center">${idx + 1}</td>
+                        <td class="px-3 py-2">${s.speaker || ''}</td>
+                        <td class="px-3 py-2">${s.topic || ''}</td>
+                        <td class="px-3 py-2">${s.time || ''}</td>
+                        <td class="px-3 py-2 text-center">${s.hours || ''}</td>
+                        <td class="px-3 py-2 text-center">
+                            <button class="text-red-600 hover:underline btn-del-session" data-index="${idx}">Hapus</button>
+                        </td>`;
+                    backSessionsBody.appendChild(tr);
+                });
+                // Append Total JP row
+                const totalJp = backSessions.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+                const trTotal = document.createElement('tr');
+                trTotal.className = 'bg-gray-50';
+                trTotal.innerHTML = `
+                    <td class="px-3 py-2 text-right font-semibold" colspan="4">Total JP</td>
+                    <td class="px-3 py-2 text-center font-semibold">${totalJp}</td>
+                    <td class="px-3 py-2"></td>`;
+                backSessionsBody.appendChild(trTotal);
+                backSessionsBody.querySelectorAll('.btn-del-session').forEach(btn => btn.addEventListener('click', (e) => {
+                    const i = parseInt(e.currentTarget.dataset.index, 10);
+                    if (!isNaN(i)) {
+                        backSessions.splice(i, 1);
+                        renderBackSessionsTable();
+                        if (currentView === 'back') drawCertificate();
+                        saveState();
+                        updateBackAddButtonState();
+                    }
+                }));
+            }
+
+            function updateBackAddButtonState() {
+                if (!backAddRowBtn) return;
+                const disabled = Array.isArray(backSessions) && backSessions.length >= 10;
+                backAddRowBtn.disabled = disabled;
+                if (disabled) backAddRowBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                else backAddRowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Handle add session for back page table
+            function addBackSession() {
+                if (!backSpeakerInputEl || !backTopicInputEl || !backTimeInputEl || !backHoursInputEl) return;
+                if (!Array.isArray(backSessions)) backSessions = [];
+
+                // Limit rows to 10
+                if (backSessions.length >= 10) {
+                    showModal('Maksimal 10 sesi. Hapus salah satu untuk menambah yang baru.');
+                    return;
+                }
+
+                const speaker = (backSpeakerInputEl.value || '').trim();
+                const topic = (backTopicInputEl.value || '').trim();
+                const time = (backTimeInputEl.value || '').trim();
+                const hoursStr = (backHoursInputEl.value || '').trim();
+                const hours = hoursStr === '' ? '' : Number(hoursStr);
+
+                if (!speaker || !topic || !time) {
+                    showModal('Lengkapi Narasumber, Materi, dan Waktu.');
+                    return;
+                }
+                if (hoursStr !== '' && (isNaN(hours) || hours <= 0)) {
+                    showModal('JP harus berupa angka positif.');
+                    return;
+                }
+
+                backSessions.push({ speaker, topic, time, hours: hoursStr === '' ? '' : hours });
+                renderBackSessionsTable();
+                updateBackAddButtonState();
+                saveState();
+
+                // Clear inputs
+                backSpeakerInputEl.value = '';
+                backTopicInputEl.value = '';
+                backTimeInputEl.value = '';
+                backHoursInputEl.value = '';
+
+                if (currentView === 'back') drawCertificate();
+            }
+
+            if (backAddRowBtn) {
+                backAddRowBtn.addEventListener('click', addBackSession);
+            }
+
+            function saveState() {
+                try {
+                    const state = {
+                        recipients,
+                        nextSerialNumber,
+                        currentRecipientIndex,
+                        currentTemplateId,
+                        isCustomImageLoaded,
+                        templateImageSrc: templateImage.src || '',
+                        draggableElements: draggableElements.map(el => el.type === 'image' ? { ...el, image: undefined } : el),
+                        backSessions,
+                    };
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+                } catch (e) { /* ignore */ }
+            }
+
+            async function loadState() {
+                try {
+                    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (!raw) { initializeDefaultState(); return; }
+                    const state = JSON.parse(raw);
+                    recipients = Array.isArray(state.recipients) ? state.recipients : [];
+                    nextSerialNumber = state.nextSerialNumber || 1;
+                    currentRecipientIndex = typeof state.currentRecipientIndex === 'number' ? state.currentRecipientIndex : (recipients.length > 0 ? 0 : -1);
+                    currentTemplateId = state.currentTemplateId || 'professional';
+                    isCustomImageLoaded = !!state.isCustomImageLoaded;
+                    draggableElements = Array.isArray(state.draggableElements) ? state.draggableElements : defaultDraggableTextElements;
+                    backSessions = Array.isArray(state.backSessions) ? state.backSessions : [];
+                    if (isCustomImageLoaded && state.templateImageSrc) {
+                        selectCustomTemplateImage(state.templateImageSrc);
+                    } else {
+                        drawCertificate();
+                    }
+                    renderRecipientTable();
+                    renderLogoThumbnails();
+                    renderBackSessionsTable();
+                    renderTemplateThumbnails();
+                    updateUI();
+                    updateBackAddButtonState();
+                } catch (e) {
+                    initializeDefaultState();
+                }
+            }
 
             // Initial default draggable text elements definition (used for fresh start/reset)
             // Added 'view' property to specify which side of the certificate the element belongs to
@@ -528,19 +907,20 @@
                 { id: 'title', type: 'text', content: '', x: 1123 / 2, y: 100, fontSize: 70, fontStyle: 'bold', fontFamily: 'Playfair Display', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
                 { id: 'subtitle', type: 'text', content: '', x: 1123 / 2, y: 200, fontSize: 30, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
                 { id: 'recipientName', type: 'text', content: '', x: 1123 / 2, y: 300, fontSize: 90, fontStyle: 'bold', fontFamily: 'Playfair Display', color: '#0d3d75', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 0.9, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'recipientJabatan', type: 'text', content: '', x: 1123 / 2, y: 350, fontSize: 28, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true }, 
-                { id: 'recipientNip', type: 'text', content: '', x: 1123 / 2, y: 390, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'recipientNuptk', type: 'text', content: '', x: 1123 / 2, y: 430, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'recipientJabatan', type: 'text', content: '', x: 1123 / 2, y: 350, fontSize: 28, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true }, 
+                { id: 'recipientNip', type: 'text', content: '', x: 1123 / 2, y: 390, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'recipientNuptk', type: 'text', content: '', x: 1123 / 2, y: 430, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
                 { id: 'description', type: 'text', content: '', x: 1123 / 2, y: 450, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'top', maxWidth: 1123 - 250, lineHeightMultiplier: 1.1, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'headerCertificateText', type: 'text', content: 'SERTIFIKAT', x: 1123 / 2, y: 75, fontSize: 50, fontStyle: 'bold', fontFamily: 'Inter', color: '#FFFFFF', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'issuer', type: 'text', content: '', x: 1123 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'issuerTitle', type: 'text', content: '', x: 1123 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'issuerNip', type: 'text', content: '', x: 1123 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'date', type: 'text', content: '', x: 1123 - 150, y: 150, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'right', textBaseline: 'alphabetic', maxWidth: 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'dateLabel', type: 'text', content: 'Tanggal', x: 1123 - 150, y: 180, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'right', textBaseline: 'alphabetic', maxWidth: 200, lineHeightMultiplier: 1.2, fixedRelative: 'date', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'issuer2', type: 'text', content: '', x: 1123 * 3 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'issuerTitle2', type: 'text', content: '', x: 1123 * 3 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'issuerNip2', type: 'text', content: '', x: 1123 * 3 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'headerCertificateText', type: 'text', content: 'SERTIFIKAT', x: 1123 / 2, y: 220, fontSize: 50, fontStyle: 'bold', fontFamily: 'Inter', color: '#FFFFFF', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuer', type: 'text', content: '', x: 1123 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerTitle', type: 'text', content: '', x: 1123 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerNip', type: 'text', content: '', x: 1123 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'date', type: 'text', content: '', x: 1123 - 150, y: 150, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'right', textBaseline: 'alphabetic', maxWidth: 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'dateLabel', type: 'text', content: 'Tanggal', x: 1123 - 150, y: 180, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'right', textBaseline: 'alphabetic', maxWidth: 200, lineHeightMultiplier: 1.2, fixedRelative: 'date', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuer2', type: 'text', content: '', x: 1123 * 3 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerTitle2', type: 'text', content: '', x: 1123 * 3 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'issuerNip2', type: 'text', content: '', x: 1123 * 3 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'serialNumber', type: 'text', content: 'INST-2025-0001', x: 150, y: 740, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 300, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
             
                 // Back of Certificate Elements (NEW)
                 { id: 'backHeader', type: 'text', content: 'Materi & Narasumber', x: 1123 / 2, y: 100, fontSize: 48, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
@@ -620,796 +1000,541 @@
                         ctx.strokeRect(30, 30, w-60, h-60);
                     }
                 },
-            ];
-
-            // Initialize allTemplates with hardcoded ones
-            allTemplates = [...hardcodedTemplates];
-
-
-            // === FUNCTIONS ===
-            const showLoading = (show) => {
-                downloadPngBtn.disabled = show;
-                downloadPdfBtn.disabled = show;
-                downloadAllPdfBtn.disabled = show;
-                if (importExcelBtn) importExcelBtn.disabled = show; // Added null check
-                addLogoUrlBtn.disabled = show;
-                logoUploadInput.disabled = show;
-                resetAllDataBtn.disabled = show;
-                clearTextFieldsBtn.disabled = show;
-                if (fontUploadInput) fontUploadInput.disabled = show; // Added null check for fontUploadInput
-                templateUploadInput.disabled = show;
-                viewFrontBtn.disabled = show; // Disable view buttons during loading
-                viewBackBtn.disabled = show; // Disable view buttons during loading
-            };
-
-            const showModal = (message, showCancel = false) => {
-                return new Promise(resolve => {
-                    modalMessage.textContent = message;
-                    if (showCancel) {
-                        modalCancelBtn.classList.remove('hidden');
-                    } else {
-                        modalCancelBtn.classList.add('hidden');
+                {
+                    id: 'minimalist',
+                    name: 'Minimalis',
+                    initialHeaderColor: '#111827',
+                    initialBodyColor: '#F3F4F6',
+                    initialRecipientNameColor: '#2563eb',
+                    draw: function(ctx, w, h) {
+                        // Background subtle gray
+                        ctx.fillStyle = '#F9FAFB';
+                        ctx.fillRect(0, 0, w, h);
+                        // Top bar
+                        ctx.fillStyle = '#111827';
+                        ctx.fillRect(0, 0, w, 12);
+                        // Thin border
+                        ctx.strokeStyle = '#E5E7EB';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(18, 18, w - 36, h - 36);
+                        // Accent circle
+                        ctx.fillStyle = '#2563eb';
+                        ctx.beginPath();
+                        ctx.arc(w - 70, 60, 6, 0, Math.PI * 2);
+                        ctx.fill();
                     }
-                    customModalOverlay.classList.remove('hidden');
-
-                    const handleOk = () => {
-                        customModalOverlay.classList.add('hidden');
-                        modalOkBtn.removeEventListener('click', handleOk);
-                        modalCancelBtn.removeEventListener('click', handleCancel);
-                        resolve(true);
-                    };
-
-                    const handleCancel = () => {
-                        customModalOverlay.classList.add('hidden');
-                        modalOkBtn.removeEventListener('click', handleOk);
-                        modalCancelBtn.removeEventListener('click', handleCancel);
-                        resolve(false);
-                    };
-
-                    modalOkBtn.addEventListener('click', handleOk);
-                    modalCancelBtn.addEventListener('click', handleCancel);
-                });
-            };
-            
-            const drawTemplateBackground = (id) => {
-                const w = canvas.width;
-                const h = canvas.height;
-                ctx.clearRect(0, 0, w, h);
-
-                const template = allTemplates.find(t => t.id === id);
-                if (template && template.draw) {
-                    template.draw(ctx, w, h);
-
-                    // Apply default colors from template definition ONLY IF NOT CUSTOMIZED by user
-                    const applyDefaultColor = (elementId, defaultColor) => {
-                        const el = draggableElements.find(e => e.id === elementId);
-                        if (el && !el.isColorCustomized) {
-                            el.color = defaultColor;
-                        }
-                    };
-                    
-                    // Specific color for recipientName
-                    applyDefaultColor('recipientName', template.initialRecipientNameColor || '#0d3d75');
-
-                    // Header color
-                    applyDefaultColor('headerCertificateText', template.initialHeaderColor || '#333333');
-
-                    // General body text color (subtitle, description, issuer, date etc.)
-                    // Check if initialBodyColor is defined, otherwise use a fallback based on header color
-                    const defaultBodyColor = template.initialBodyColor || (template.initialHeaderColor === '#FFFFFF' ? '#E0E0E0' : '#555555');
-                    ['subtitle', 'description', 'issuer', 'issuerTitle', 'issuerNip', 'issuer2', 'issuerTitle2', 'issuerNip2', 'date', 'dateLabel', 'recipientJabatan', 'recipientNip', 'recipientNuptk'].forEach(elementId => {
-                        applyDefaultColor(elementId, defaultBodyColor);
-                    });
-
-                    // For back of certificate, use a default color if not customized
-                    ['backHeader', 'backMateriTitle', 'backMateri', 'backNarasumberTitle', 'backNarasumber', 'backJamTitle', 'backJam'].forEach(elementId => {
-                        const el = draggableElements.find(e => e.id === elementId);
-                        if (el && !el.isColorCustomized) {
-                            el.color = '#333333'; // Default dark color for back
-                        }
-                    });
-                } else if (currentView === 'back') {
-                    // Simple white background for the back if no specific template draw function
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, w, h);
-                    ctx.strokeStyle = '#e0e0e0';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(15, 15, w - 30, h - 30);
-                }
-            };
-            
-            // Function to draw certificate elements
-            // The `recipientData` parameter allows drawing for a specific recipient without changing `currentRecipientIndex`
-            const drawCertificate = (recipientData = null) => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                if (isCustomImageLoaded && templateImage.complete) {
-                    const ratio = templateImage.naturalWidth / templateImage.naturalHeight;
-                    canvas.width = 1123;
-                    canvas.height = canvas.width / ratio;
-                    ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
-                } else {
-                    canvas.width = 1123;
-                    canvas.height = 794;
-                    drawTemplateBackground(currentTemplateId);
-                }
-                
-                const displayRecipient = recipientData || recipients[currentRecipientIndex] || { name: 'Nama Penerima Contoh', jabatan: 'Jabatan Contoh', nip: 'NIP Contoh', nuptk: 'NUPTK Contoh' };
-
-                // Update content of draggable text elements from corresponding textFields inputs
-                draggableElements.filter(el => el.type === 'text').forEach(el => {
-                    if (el.view === 'front') {
-                        if (el.id === 'recipientName') el.content = displayRecipient.name;
-                        else if (el.id === 'recipientJabatan') el.content = displayRecipient.jabatan;
-                        else if (el.id === 'recipientNip') el.content = displayRecipient.nip;
-                        else if (el.id === 'recipientNuptk') el.content = displayRecipient.nuptk;
-                        else if (textFields[el.id]) { // For other text fields, get content from inputs
-                            el.content = textFields[el.id].value;
-                        }
-                    } else if (el.view === 'back') { // NEW: Update content for back elements
-                        if (backTextFields[el.id]) {
-                            el.content = backTextFields[el.id].value;
-                        }
+                },
+                {
+                    id: 'elegant',
+                    name: 'Elegan',
+                    initialHeaderColor: '#a88734',
+                    initialBodyColor: '#f7f2e7',
+                    initialRecipientNameColor: '#7c5a27',
+                    draw: function(ctx, w, h) {
+                        // Cream paper
+                        ctx.fillStyle = '#f7f2e7';
+                        ctx.fillRect(0, 0, w, h);
+                        // Double gold border
+                        ctx.strokeStyle = '#c5a66e';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(26, 26, w - 52, h - 52);
+                        ctx.strokeStyle = '#a88734';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(40, 40, w - 80, h - 80);
+                        // Subtle corner ornaments
+                        ctx.strokeStyle = '#c5a66e';
+                        ctx.lineWidth = 1.5;
+                        const r = 24;
+                        ctx.beginPath(); ctx.arc(64, 64, r, Math.PI, 1.5*Math.PI); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(w-64, 64, r, 1.5*Math.PI, 0); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(64, h-64, r, 0.5*Math.PI, Math.PI); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(w-64, h-64, r, 0, 0.5*Math.PI); ctx.stroke();
                     }
-                });
-
-                // Find recipientName element to base dynamic positioning on its Y
-                const recipientNameEl = draggableElements.find(el => el.id === 'recipientName');
-                // The current Y position for dynamic text flow, starting from recipientName's stored Y
-                let dynamicBlockCurrentY = recipientNameEl ? recipientNameEl.y : 0; 
-
-                draggableElements.forEach(el => {
-                    // Only draw elements for the current view or 'both'
-                    el.isCurrentlyVisible = (el.view === currentView || el.view === 'both');
-
-                    el.calculatedX = el.x;
-                    el.calculatedY = el.y;
-                    el.calculatedWidth = el.width || 0;
-                    el.calculatedHeight = el.height || 0;
-
-                    if (el.type === 'text') {
-                        ctx.font = `${el.fontStyle} ${el.fontSize}px "${el.fontFamily}"`;
-                        
-                        let textMetrics = ctx.measureText(el.content);
-                        let contentWidth = textMetrics.width;
-                        let contentHeight = el.fontSize * el.lineHeightMultiplier;
-                        
-                        // Special handling for multi-line text (description, materi, narasumber)
-                        if ((el.id === 'description' || el.id === 'backMateri' || el.id === 'backNarasumber') && el.content.trim() !== '') {
-                            const words = el.content.split(' ');
-                            let lineCount = 1;
-                            let currentLine = '';
-                            for (let n = 0; n < words.length; n++) {
-                                const testLine = currentLine + words[n] + ' ';
-                                const metricsWrapped = ctx.measureText(testLine);
-                                if (metricsWrapped.width > el.maxWidth && n > 0) {
-                                    lineCount++;
-                                    currentLine = words[n] + ' ';
-                                } else {
-                                    currentLine = testLine;
-                                }
-                            }
-                            contentHeight = lineCount * el.fontSize * el.lineHeightMultiplier;
-                            contentWidth = el.maxWidth; // Use max width for calculated width
-                        }
-
-                        // Dynamic positioning for recipient details (front)
-                        if (el.view === 'front' && !el.isPositionCustomized && ['recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(el.id)) {
-                            const hasContent = el.content.trim() !== '';
-
-                            if (hasContent) {
-                                let spacing = 0;
-                                if (el.id === 'description') spacing = 10;
-                                
-                                el.calculatedY = dynamicBlockCurrentY + spacing;
-                                dynamicBlockCurrentY = el.calculatedY + contentHeight;
-                            } else {
-                                el.calculatedY = dynamicBlockCurrentY;
-                                el.isCurrentlyVisible = false; // Hide if no content and not custom positioned
-                            }
-                        } else if (el.view === 'front' && el.isPositionCustomized && ['recipientName', 'recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(el.id)) {
-                            el.calculatedY = el.y; 
-                            if (el.content.trim() !== '') {
-                                dynamicBlockCurrentY = el.calculatedY + contentHeight;
-                            } else {
-                                dynamicBlockCurrentY = el.calculatedY;
-                                el.isCurrentlyVisible = false; // Hide if no content and custom positioned
-                            }
-                        } else if (el.id === 'recipientName' && el.view === 'front') {
-                            el.calculatedY = el.y; 
-                            if (el.content.trim() !== '') {
-                                dynamicBlockCurrentY = el.calculatedY + contentHeight;
-                            } else {
-                                dynamicBlockCurrentY = el.calculatedY;
-                                el.isCurrentlyVisible = false; // Hide if no content
-                            }
-                        }
-
-                        el.calculatedWidth = contentWidth;
-                        el.calculatedHeight = contentHeight;
-
-                        el.calculatedX = el.x; 
-                        if (el.textAlign === 'center') {
-                            el.calculatedX -= el.calculatedWidth / 2;
-                        } else if (el.textAlign === 'right') {
-                            el.calculatedX -= el.calculatedWidth;
-                        }
-
-                        let adjustedCalculatedYForBaseline = el.calculatedY;
-                        if (el.textBaseline === 'alphabetic') {
-                            adjustedCalculatedYForBaseline -= (el.fontSize * 0.75);
-                        } else if (el.textBaseline === 'middle') {
-                            adjustedCalculatedYForBaseline -= (el.calculatedHeight / 2);
-                        } else if (el.textBaseline === 'bottom') {
-                            adjustedCalculatedYForBaseline -= el.calculatedHeight;
-                        }
-                        el.calculatedY = adjustedCalculatedYForBaseline;
-
-                    }
-                });
-
-                draggableElements.forEach(el => {
-                    if (!el.isCurrentlyVisible) return; // Skip drawing if not visible in current view or no content
-
-                    if (el.type === 'image' && el.image && el.image.complete) {
-                        ctx.drawImage(el.image, el.x, el.y, el.width, el.height);
-                        if (selectedDraggableElement && selectedDraggableElement.id === el.id && !isDownloading) {
-                            ctx.strokeStyle = '#1d4ed8';
-                            ctx.lineWidth = 2;
-                            ctx.setLineDash([5, 5]);
-                            ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
-                            ctx.setLineDash([]);
-                        }
-                    } else if (el.type === 'text') {
-                        ctx.font = `${el.fontStyle} ${el.fontSize}px "${el.fontFamily}"`;
-                        ctx.fillStyle = el.color;
-                        ctx.textAlign = el.textAlign;
-                        ctx.textBaseline = el.textBaseline;
-
-                        let drawYForText = el.calculatedY;
-                        if (el.textBaseline === 'alphabetic') {
-                            drawYForText += (el.fontSize * 0.75);
-                        } else if (el.textBaseline === 'middle') {
-                            drawYForText += (el.calculatedHeight / 2);
-                        } else if (el.textBaseline === 'bottom') {
-                            drawYForText += el.calculatedHeight;
-                        }
-                        
-                        if (el.id === 'description' || el.id === 'backMateri' || el.id === 'backNarasumber') {
-                            wrapText(ctx, el.content, el.x, drawYForText, el.maxWidth, el.fontSize * el.lineHeightMultiplier);
-                        } else {
-                            ctx.fillText(el.content, el.x, drawYForText);
-                        }
-
-                        if (selectedDraggableElement && selectedDraggableElement.id === el.id && !isDownloading) {
-                            ctx.strokeStyle = '#1d4ed8';
-                            ctx.lineWidth = 2;
-                            ctx.setLineDash([5, 5]);
-                            ctx.strokeRect(el.calculatedX - 5, el.calculatedY - 5, el.calculatedWidth + 10, el.calculatedHeight + 10);
-                            ctx.setLineDash([]);
-                        }
-
-                        if ((el.id === 'issuer' || el.id === 'issuer2' || el.id === 'recipientName') && el.content.trim() !== '') {
-                            const textWidth = ctx.measureText(el.content).width;
-                            const lineY = drawYForText + (el.textBaseline === 'alphabetic' ? (el.fontSize * 0.1) : 0);
+                },
+                {
+                    id: 'tech',
+                    name: 'Tech',
+                    initialHeaderColor: '#111827',
+                    initialBodyColor: '#0ea5e9',
+                    initialRecipientNameColor: '#06b6d4',
+                    draw: function(ctx, w, h) {
+                        // Diagonal gradient background
+                        const g = ctx.createLinearGradient(0, 0, w, h);
+                        g.addColorStop(0, '#0f172a');
+                        g.addColorStop(1, '#0ea5e9');
+                        ctx.fillStyle = g;
+                        ctx.fillRect(0, 0, w, h);
+                        // Geometric lines
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                        ctx.lineWidth = 1;
+                        for (let i = 0; i < 6; i++) {
                             ctx.beginPath();
-                            ctx.moveTo(el.x - textWidth / 2, lineY);
-                            ctx.lineTo(el.x + textWidth / 2, lineY);
-                            ctx.lineWidth = 1;
-                            ctx.strokeStyle = el.color; // Use element's color for the line
+                            ctx.moveTo(0, (h/6) * i + 40);
+                            ctx.bezierCurveTo(w * 0.25, h * 0.6, w * 0.3, h * 0.8, w * 0.5, h * 0.75);
+                            ctx.bezierCurveTo(w * 0.75, h * 0.7, w * 0.8, h * 0.9, w, h * 0.8);
+                            ctx.lineTo(w, h);
+                            ctx.lineTo(0, h);
+                            ctx.closePath();
                             ctx.stroke();
                         }
+                        // Accent nodes
+                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                        for (let i = 0; i < 8; i++) {
+                            const x = (w / 8) * i + 50;
+                            const y = (h / 6) * (i % 6) + 60;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
                     }
-                });
-                if (!recipientData) { // Only update UI if not drawing for bulk download
-                    updateUI();
-                }
-            };
+                },
+            ];
 
-            const wrapText = (context, text, x, y, maxWidth, lineHeight) => {
-                const words = text.split(' ');
+// Function to draw certificate elements
+// The `recipientData` parameter allows drawing for a specific recipient without changing `currentRecipientIndex`
+const drawCertificate = (recipientData = null) => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (isCustomImageLoaded && templateImage.complete) {
+        const ratio = templateImage.naturalWidth / templateImage.naturalHeight;
+        canvas.width = 1123;
+        canvas.height = canvas.width / ratio;
+        ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
+    } else {
+        canvas.width = 1123;
+        canvas.height = 794;
+        drawTemplateBackground(currentTemplateId);
+    }
+    
+    const displayRecipient = recipientData || recipients[currentRecipientIndex] || { name: 'Nama Penerima Contoh', jabatan: 'Jabatan Contoh', nip: 'NIP Contoh', nuptk: 'NUPTK Contoh', serial: `${SERIAL_PREFIX}0001` };
+
+    // Update content of draggable text elements from corresponding textFields inputs
+    draggableElements.filter(el => el.type === 'text').forEach(el => {
+        if (el.view === 'front') {
+            if (el.id === 'recipientName') el.content = displayRecipient.name;
+            else if (el.id === 'recipientJabatan') el.content = displayRecipient.jabatan;
+            else if (el.id === 'recipientNip') el.content = displayRecipient.nip;
+            else if (el.id === 'recipientNuptk') el.content = displayRecipient.nuptk;
+            else if (el.id === 'serialNumber') el.content = displayRecipient.serial || `${SERIAL_PREFIX}0001`;
+            else if (textFields[el.id]) { // For other text fields, get content from inputs
+                el.content = textFields[el.id].value;
+            }
+        } else if (el.view === 'back') { // NEW: Update content for back elements
+            if (backTextFields[el.id]) {
+                el.content = backTextFields[el.id].value;
+            }
+        }
+    });
+
+    // Find recipientName element to base dynamic positioning on its Y
+    const recipientNameEl = draggableElements.find(el => el.id === 'recipientName');
+    // The current Y position for dynamic text flow, starting from recipientName's stored Y
+    let dynamicBlockCurrentY = recipientNameEl ? recipientNameEl.y : 0; 
+
+    draggableElements.forEach(el => {
+        // Only draw elements for the current view or 'both'
+        el.isCurrentlyVisible = (el.view === currentView || el.view === 'both');
+
+        el.calculatedX = el.x;
+        el.calculatedY = el.y;
+        el.calculatedWidth = el.width || 0;
+        el.calculatedHeight = el.height || 0;
+
+        if (el.type === 'text') {
+            ctx.font = `${el.fontStyle} ${el.fontSize}px "${el.fontFamily}"`;
+            
+            let textMetrics = ctx.measureText(el.content);
+            let contentWidth = textMetrics.width;
+            let contentHeight = el.fontSize * el.lineHeightMultiplier;
+            
+            // Special handling for multi-line text (description, materi, narasumber)
+            if ((el.id === 'description' || el.id === 'backMateri' || el.id === 'backNarasumber') && el.content.trim() !== '') {
+                const words = el.content.split(' ');
+                let lineCount = 1;
+                let currentLine = '';
+                for (let n = 0; n < words.length; n++) {
+                    const testLine = currentLine + words[n] + ' ';
+                    const metricsWrapped = ctx.measureText(testLine);
+                    if (metricsWrapped.width > el.maxWidth && n > 0) {
+                        lineCount++;
+                        currentLine = words[n] + ' ';
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                contentHeight = lineCount * el.fontSize * el.lineHeightMultiplier;
+                contentWidth = el.maxWidth; // Use max width for calculated width
+            }
+
+            // Dynamic positioning for recipient details (front)
+            if (el.view === 'front' && !el.isPositionCustomized && ['recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(el.id)) {
+                const hasContent = el.content.trim() !== '';
+                if (hasContent) {
+                    let spacing = 0;
+                    if (el.id === 'description') spacing = 10;
+                    
+                    el.calculatedY = dynamicBlockCurrentY + spacing;
+                    dynamicBlockCurrentY = el.calculatedY + contentHeight;
+                } else {
+                    el.calculatedY = dynamicBlockCurrentY;
+                    el.isCurrentlyVisible = false;
+                }
+            } else if (el.view === 'front' && el.isPositionCustomized && ['recipientName', 'recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(el.id)) {
+                el.calculatedY = el.y; 
+                if (el.content.trim() !== '') {
+                    dynamicBlockCurrentY = el.calculatedY + contentHeight;
+                } else {
+                    dynamicBlockCurrentY = el.calculatedY;
+                    el.isCurrentlyVisible = false;
+                }
+            } else if (el.id === 'recipientName' && el.view === 'front') {
+                el.calculatedY = el.y;
+                if (el.content.trim() !== '') {
+                    dynamicBlockCurrentY = el.calculatedY + contentHeight;
+                }
+            }
+
+            el.calculatedWidth = contentWidth;
+            el.calculatedHeight = contentHeight;
+        }
+    });
+
+    // If viewing back, draw v3-style back page and return
+    if (currentView === 'back') {
+        // Background gradient like v3
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#0ea5e9');
+        gradient.addColorStop(1, '#22c55e');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const margin = 40; // smaller margin to give larger inner content area
+        const innerRadius = 12;
+
+        // Inner white rounded panel
+        ctx.fillStyle = 'rgba(255,255,255,0.96)';
+        ctx.beginPath();
+        ctx.moveTo(margin + innerRadius, margin);
+        ctx.lineTo(canvas.width - margin - innerRadius, margin);
+        ctx.quadraticCurveTo(canvas.width - margin, margin, canvas.width - margin, margin + innerRadius);
+        ctx.lineTo(canvas.width - margin, canvas.height - margin - innerRadius);
+        ctx.quadraticCurveTo(canvas.width - margin, canvas.height - margin, canvas.width - margin - innerRadius, canvas.height - margin);
+        ctx.lineTo(margin + innerRadius, canvas.height - margin);
+        ctx.quadraticCurveTo(margin, canvas.height - margin, margin, canvas.height - margin - innerRadius);
+        ctx.lineTo(margin, margin + innerRadius);
+        ctx.quadraticCurveTo(margin, margin, margin + innerRadius, margin);
+        ctx.closePath();
+        ctx.fill();
+
+        // Border accent
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw logos on back (reuse first two logos)
+        const logos = draggableElements.filter(el => el.type === 'image');
+        if (logos.length > 0) {
+            const marginInnerX = 20;
+            const marginInnerY = 20;
+            const logoMaxWidth = 120;
+            const logoMaxHeight = 80;
+            const leftImg = logos[0].image;
+            if (leftImg && leftImg.complete) {
+                const ratioL = Math.min(logoMaxWidth / leftImg.width, logoMaxHeight / leftImg.height);
+                const wL = leftImg.width * ratioL; const hL = leftImg.height * ratioL;
+                ctx.drawImage(leftImg, margin + marginInnerX, margin + marginInnerY, wL, hL);
+            }
+            if (logos.length > 1) {
+                const rightImg = logos[1].image;
+                if (rightImg && rightImg.complete) {
+                    const ratioR = Math.min(logoMaxWidth / rightImg.width, logoMaxHeight / rightImg.height);
+                    const wR = rightImg.width * ratioR; const hR = rightImg.height * ratioR;
+                    ctx.drawImage(rightImg, canvas.width - margin - marginInnerX - wR, margin + marginInnerY, wR, hR);
+                }
+            }
+        }
+
+        const centerX = canvas.width / 2;
+        let currentY = margin + 50;
+
+        // Header
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '700 34px "Playfair Display"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Rincian Kegiatan / Materi', centerX, currentY);
+
+        currentY += 34;
+        ctx.font = '400 18px "Inter"';
+        ctx.fillStyle = '#6b7280';
+        ctx.fillText('Berikut adalah daftar narasumber, materi, dan waktu pelaksanaan.', centerX, currentY);
+
+        // Table
+        const tableTop = currentY + 40;
+        const left = margin + 20;
+        const right = canvas.width - margin - 20;
+        const colNoWidth = 40;
+        const colSpeakerWidth = 200;
+        const colTimeWidth = 120;
+        const colHoursWidth = 50;
+        const colTopicWidth = right - left - colNoWidth - colSpeakerWidth - colTimeWidth - colHoursWidth;
+
+        const headerHeight = 34;
+        const rowHeight = 28;
+
+        ctx.textAlign = 'left';
+        ctx.font = '600 14px "Inter"';
+        ctx.fillStyle = '#0f172a';
+
+        // Header background
+        ctx.fillStyle = '#e5f3ff';
+        ctx.fillRect(left, tableTop, right - left, headerHeight);
+        ctx.fillStyle = '#0f172a';
+        let x = left + 8;
+        let y = tableTop + headerHeight / 2 + 4;
+        ctx.fillText('No', x, y); x += colNoWidth;
+        ctx.fillText('Narasumber', x, y); x += colSpeakerWidth;
+        ctx.fillText('Materi', x, y); x += colTopicWidth;
+        ctx.fillText('Waktu', x, y); x += colTimeWidth;
+        ctx.textAlign = 'center';
+        ctx.fillText('JP', x + colHoursWidth / 2 - 8, y);
+
+        // Separator line
+        ctx.strokeStyle = '#cbd5f5';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(left, tableTop + headerHeight);
+        ctx.lineTo(right, tableTop + headerHeight);
+        ctx.stroke();
+
+        // Rows
+        ctx.font = '400 14px "Inter"';
+        let rowY = tableTop + headerHeight + rowHeight;
+        if (!backSessions || backSessions.length === 0) {
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillText('Belum ada sesi ditambahkan.', centerX, rowY);
+        } else {
+            backSessions.forEach((s, idx) => {
+                if (rowY > canvas.height - margin - 40) return;
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#0f172a';
+                let cx = left + 8; const cy = rowY - rowHeight / 2 + 10;
+                ctx.fillText(String(idx + 1), cx, cy); cx += colNoWidth;
+                ctx.fillText(s.speaker || '', cx, cy); cx += colSpeakerWidth;
+                // Trim topic to fit
+                const topicMax = colTopicWidth - 12; let topicTxt = s.topic || '';
+                while (ctx.measureText(topicTxt).width > topicMax && topicTxt.length > 0) topicTxt = topicTxt.slice(0, -1);
+                ctx.fillText(topicTxt, cx, cy); cx += colTopicWidth;
+                ctx.fillText(s.time || '', cx, cy); cx += colTimeWidth;
+                ctx.textAlign = 'center';
+                ctx.fillText(String(s.hours || ''), cx + colHoursWidth / 2 - 8, cy);
+                rowY += rowHeight;
+            });
+            // Draw Total JP
+            const totalJp = backSessions.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+            ctx.textAlign = 'right';
+            ctx.font = '600 14px "Inter"';
+            ctx.fillStyle = '#0f172a';
+            ctx.fillText(`Total JP: ${totalJp}`, right, rowY + 10);
+        }
+        return; // Back view done
+    }
+
+    // Draw all visible elements
+    draggableElements.forEach(el => {
+        if (!el.isCurrentlyVisible) return;
+
+        if (el.type === 'text') {
+            ctx.font = `${el.fontStyle} ${el.fontSize}px "${el.fontFamily}"`;
+            ctx.fillStyle = el.color;
+            ctx.textAlign = el.textAlign;
+            ctx.textBaseline = el.textBaseline;
+
+            const drawX = el.calculatedX;
+            const drawY = el.calculatedY;
+
+            // Draw multi-line text for description, backMateri, backNarasumber
+            if ((el.id === 'description' || el.id === 'backMateri' || el.id === 'backNarasumber') && el.content.trim() !== '') {
+                const words = el.content.split(' ');
                 let line = '';
-                let currentY = y;
-                for(let n = 0; n < words.length; n++) {
+                let yOffset = 0;
+                for (let n = 0; n < words.length; n++) {
                     const testLine = line + words[n] + ' ';
-                    const metrics = context.measureText(testLine);
-                    const testWidth = metrics.width;
-                    if (testWidth > maxWidth && n > 0) {
-                        context.fillText(line, x, currentY);
+                    const metricsWrapped = ctx.measureText(testLine);
+                    if (metricsWrapped.width > el.maxWidth && n > 0) {
+                        ctx.fillText(line, drawX, drawY + yOffset);
                         line = words[n] + ' ';
-                        currentY += lineHeight;
+                        yOffset += el.fontSize * el.lineHeightMultiplier;
                     } else {
                         line = testLine;
                     }
                 }
-                context.fillText(line, x, currentY);
-            };
-
-            const renderRecipientTable = () => {
-                if (!recipientTableBody) { // Added null check
-                    console.error("Error: recipientTableBody element not found.");
-                    return;
-                }
-                recipientTableBody.innerHTML = '';
-                if (recipients.length === 0) {
-                    recipientTableBody.innerHTML = `<tr class="placeholder-row"><td colspan="5" class="text-center p-4 text-gray-400">Belum ada data penerima.</td></tr>`;
-                    return;
-                }
-                recipients.forEach((recipient, index) => {
-                    const row = document.createElement('tr');
-                    row.className = 'bg-white border-b hover:bg-gray-50';
-                    row.innerHTML = `
-                        <td class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">${recipient.name}</td>
-                        <td class="px-4 py-2">${recipient.jabatan || '-'}</td>
-                        <td class="px-4 py-2">${recipient.nip || '-'}</td>
-                        <td class="px-4 py-2">${recipient.nuptk || '-'}</td>
-                        <td class="px-4 py-2 text-center">
-                            <button class="edit-btn text-blue-600 hover:text-blue-800" data-index="${index}" title="Edit"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="delete-btn text-red-600 hover:text-red-800 ml-3" data-index="${index}" title="Hapus"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    `;
-                    recipientTableBody.appendChild(row);
-                });
-                document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', handleEdit));
-                document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', handleDelete));
-            };
-
-            const renderLogoThumbnails = () => {
-                logoListContainer.innerHTML = '';
-                const imageElements = draggableElements.filter(el => el.type === 'image');
-                if (imageElements.length === 0) {
-                    noLogosMessage.classList.remove('hidden');
-                    logoListContainer.appendChild(noLogosMessage);
-                    return;
-                }
-                noLogosMessage.classList.add('hidden');
-
-                imageElements.forEach(logo => {
-                    const logoWrapper = document.createElement('div');
-                    logoWrapper.className = 'relative group';
-                    logoWrapper.innerHTML = `
-                        <img src="${logo.src}" alt="Logo" class="logo-thumbnail">
-                        <button class="absolute top-0 right-0 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity delete-logo-btn" data-id="${logo.id}" title="Hapus Logo">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-                    logoListContainer.appendChild(logoWrapper);
-                });
-
-                document.querySelectorAll('.delete-logo-btn').forEach(btn => {
-                    btn.addEventListener('click', handleDeleteLogo);
-                });
-            };
-
-            const renderTemplateThumbnails = () => {
-                templateThumbnailsContainer.innerHTML = '';
-                allTemplates.forEach(template => {
-                    const templateDiv = document.createElement('div');
-                    templateDiv.className = `template-thumbnail ${template.id === currentTemplateId ? 'selected' : ''}`;
-                    templateDiv.dataset.templateId = template.id;
-                    
-                    let styleAttr = '';
-                    switch(template.id) {
-                        case 'professional': styleAttr = 'background: linear-gradient(45deg, #0a2e5c, #1a4a8a);'; break;
-                        case 'modern': styleAttr = 'background: linear-gradient(45deg, #4f46e5, #c026d3);'; break;
-                        case 'formal': styleAttr = 'background-color: #f5f5f5; border: 1px solid #ddd'; break;
-                    }
-                    templateDiv.setAttribute('style', styleAttr);
-                    templateDiv.innerHTML = `<div class="overlay" style="color: ${template.initialHeaderColor || '#333'}">${template.name}</div>`;
-                    templateThumbnailsContainer.appendChild(templateDiv);
-                });
-
-                document.querySelectorAll('.template-thumbnail').forEach(div => {
-                    div.addEventListener('click', () => selectProvidedTemplate(div.dataset.templateId));
-                });
-            };
-
-            const updateUI = () => {
-                const hasRecipients = recipients.length > 0;
-                if (hasRecipients) {
-                    previewIndicator.textContent = `Penerima ${currentRecipientIndex + 1} / ${recipients.length}`;
-                } else {
-                    previewIndicator.textContent = 'Penerima 0 / 0';
-                }
-                prevBtn.disabled = !hasRecipients || currentRecipientIndex <= 0;
-                nextBtn.disabled = !hasRecipients || currentRecipientIndex >= recipients.length - 1;
-                downloadPngBtn.disabled = !hasRecipients;
-                downloadPdfBtn.disabled = !hasRecipients;
-                downloadAllPdfBtn.disabled = !hasRecipients;
-                
-                // Update view buttons active state
-                viewFrontBtn.classList.toggle('active', currentView === 'front');
-                viewBackBtn.classList.toggle('active', currentView === 'back');
-            };
-
-            const updateSidebarControls = () => {
-                if (selectedDraggableElement) {
-                    if (elementSelectionHint) elementSelectionHint.classList.add('hidden'); // Added null check
-                    if (selectedDraggableElement.type === 'text') {
-                        if (fontControlsDiv) fontControlsDiv.classList.remove('hidden'); // Added null check
-                        if (imageControlsDiv) imageControlsDiv.classList.add('hidden'); // Added null check
-                        if (fontSizeInput) fontSizeInput.value = selectedDraggableElement.fontSize; // Added null check
-                        if (fontWeightBold) fontWeightBold.checked = selectedDraggableElement.fontStyle === 'bold'; // Added null check
-                        if (fontFamilySelect) fontFamilySelect.value = selectedDraggableElement.fontFamily.replace(/"/g, ''); // Added null check
-                        if (textColorInput) textColorInput.value = selectedDraggableElement.color; // Added null check
-                        if (textAlignSelect) textAlignSelect.value = selectedDraggableElement.textAlign; // Added null check
-                    } else if (selectedDraggableElement.type === 'image') {
-                        if (fontControlsDiv) fontControlsDiv.classList.add('hidden'); // Added null check
-                        if (imageControlsDiv) imageControlsDiv.classList.remove('hidden'); // Added null check
-                        if (imageWidthInput) imageWidthInput.value = selectedDraggableElement.width; // Added null check
-                        if (imageHeightInput) imageHeightInput.value = selectedDraggableElement.height; // Added null check
-                    }
-                } else {
-                    if (elementSelectionHint) elementSelectionHint.classList.remove('hidden'); // Added null check
-                    if (fontControlsDiv) fontControlsDiv.classList.add('hidden'); // Added null check
-                    if (imageControlsDiv) imageControlsDiv.classList.add('hidden'); // Added null check
-                }
-            };
-
-            const selectProvidedTemplate = (id) => {
-                currentTemplateId = id;
-                isCustomImageLoaded = false;
-                renderTemplateThumbnails(); // Re-render to update 'selected' class
-                drawCertificate();
-                saveState();
+                ctx.fillText(line, drawX, drawY + yOffset);
+            } else {
+                ctx.fillText(el.content, drawX, drawY);
             }
 
-            const selectCustomTemplateImage = (url) => {
-                showLoading(true);
-                templateImage.src = url;
-            };
+            // Draw underline for issuer, issuer2, and recipientName
+            if ((el.id === 'issuer' || el.id === 'issuer2' || el.id === 'recipientName') && el.content.trim() !== '') {
+                const textWidth = ctx.measureText(el.content).width;
+                const lineY = drawY + (el.textBaseline === 'alphabetic' ? (el.fontSize * 0.1) : 0);
+                ctx.beginPath();
+                ctx.moveTo(drawX - textWidth / 2, lineY);
+                ctx.lineTo(drawX + textWidth / 2, lineY);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = el.color;
+                ctx.stroke();
+            }
+
+            // Draw selection border (alignment-aware)
+            if (selectedDraggableElement && selectedDraggableElement.id === el.id && !isDownloading) {
+                let selLeft = el.calculatedX;
+                if (el.textAlign === 'center') selLeft = el.calculatedX - el.calculatedWidth / 2;
+                else if (el.textAlign === 'right') selLeft = el.calculatedX - el.calculatedWidth;
+
+                let selTop = el.calculatedY;
+                if (el.textBaseline === 'alphabetic') selTop = el.calculatedY - el.fontSize;
+                else if (el.textBaseline === 'middle') selTop = el.calculatedY - el.calculatedHeight / 2;
+
+                ctx.strokeStyle = '#1d4ed8';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(selLeft - 5, selTop - 5, el.calculatedWidth + 10, el.calculatedHeight + 10);
+                ctx.setLineDash([]);
+            }
+        } else if (el.type === 'image' && el.image && el.image.complete) {
+            ctx.drawImage(el.image, el.x, el.y, el.width, el.height);
             
-            // === LOCAL STORAGE FUNCTIONS ===
-            const saveState = () => {
-                const appStateToSave = {
-                    textFields: {},
-                    backTextFields: {}, // NEW: Save back text fields
-                    recipients: [...recipients],
-                    draggableElements: draggableElements.map(el => {
-                        const savedEl = {
-                            id: el.id,
-                            type: el.type,
-                            x: el.x,
-                            y: el.y,
-                            isPositionCustomized: el.isPositionCustomized || false,
-                            view: el.view || 'front' // Save view property
-                        };
-                        if (el.type === 'image') {
-                            savedEl.width = el.width;
-                            savedEl.height = el.height;
-                            savedEl.src = el.image ? el.image.src : el.src;
-                        } else { // type === 'text'
-                            savedEl.content = el.content;
-                            savedEl.fontSize = el.fontSize;
-                            savedEl.fontStyle = el.fontStyle;
-                            savedEl.fontFamily = el.fontFamily;
-                            savedEl.color = el.color;
-                            savedEl.textAlign = el.textAlign;
-                            savedEl.textBaseline = el.textBaseline;
-                            savedEl.maxWidth = el.maxWidth;
-                            savedEl.lineHeightMultiplier = el.lineHeightMultiplier;
-                            savedEl.isColorCustomized = el.isColorCustomized || false;
-                            savedEl.isFontFamilyCustomized = el.isFontFamilyCustomized || false;
-                            savedEl.isFontSizeCustomized = el.isFontSizeCustomized || false;
-                            savedEl.isAlignCustomized = el.isAlignCustomized || false;
-                        }
-                        return savedEl;
-                    }),
-                    currentRecipientIndex: currentRecipientIndex,
-                    currentTemplateId: currentTemplateId,
-                    customTemplateImageSrc: isCustomImageLoaded ? templateImage.src : null,
-                    isCustomImageLoaded: isCustomImageLoaded,
-                    currentView: currentView // NEW: Save current view
-                };
+            // Draw selection border for images
+            if (selectedDraggableElement && selectedDraggableElement.id === el.id && !isDownloading) {
+                ctx.strokeStyle = '#1d4ed8';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(el.x - 5, el.y - 5, el.width + 10, el.height + 10);
+                ctx.setLineDash([]);
+            }
+        }
+    });
+};
 
-                for (const key in textFields) {
-                    if (textFields.hasOwnProperty(key) && textFields[key]) { // Added null check
-                        appStateToSave.textFields[key] = textFields[key].value;
-                    }
-                }
-                for (const key in backTextFields) { // NEW: Save back text fields content
-                    if (backTextFields.hasOwnProperty(key) && backTextFields[key]) { // Added null check
-                        appStateToSave.backTextFields[key] = backTextFields[key].value;
-                    }
-                }
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appStateToSave));
-                console.log("State saved.");
-            };
+const initializeDefaultState = () => {
+    if (textFields.title) textFields.title.value = "Sertifikat Penghargaan";
+    if (textFields.subtitle) textFields.subtitle.value = "DIBERIKAN KEPADA";
+    if (textFields.description) textFields.description.value = "Atas partisipasi dan kontribusi luar biasa dalam Workshop Pengembangan Aplikasi Web Interaktif.";
+    if (textFields.headerCertificateText) textFields.headerCertificateText.value = "SERTIFIKAT";
+    if (textFields.issuer) textFields.issuer.value = "Sugandi,S.Kom";
+    if (textFields.issuerTitle) textFields.issuerTitle.value = "Direktur Program";
+    if (textFields.issuerNip) textFields.issuerNip.value = "1994xxxxxxxxxx1001";
+    if (textFields.issuer2) textFields.issuer2.value = "Prof. Siti Aminah";
+    if (textFields.issuerTitle2) textFields.issuerTitle2.value = "Kepala Departemen";
+    if (textFields.issuerNip2) textFields.issuerNip2.value = "198005152005022002";
+    if (textFields.date) textFields.date.value = "27 Juni 2025";
 
-            const loadState = async () => {
-                const savedStateString = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (!savedStateString) {
-                    console.log("No saved state found, initializing default.");
-                    initializeDefaultState();
-                    return;
-                }
+    // NEW: Default values for back text fields
+    if (backTextFields.backMateri) backTextFields.backMateri.value = "- Pengenalan HTML & CSS (09:00 - 10:30)\n- JavaScript Dasar (10:45 - 12:00)\n- Studi Kasus Proyek (13:00 - 14:30)";
+    if (backTextFields.backNarasumber) backTextFields.backNarasumber.value = "- Budi Santoso, S.T., M.Kom\n- Dr. Indah Permata, M.Eng";
+    if (backTextFields.backJam) backTextFields.backJam.value = "09:00 - 16:00 WIB";
 
-                try {
-                    const savedState = JSON.parse(savedStateString);
-                    console.log("Loaded state:", savedState);
+    // Added null checks for recipient input fields
+    if (recipientNameInput) recipientNameInput.value = '';
+    if (recipientJabatanInput) recipientJabatanInput.value = '';
+    if (recipientNipInput) recipientNipInput.value = '';
+    if (recipientNuptkInput) recipientNuptkInput.value = '';
+    if (editingIndexInput) editingIndexInput.value = '';
 
-                    // Re-initialize allTemplates with hardcoded ones only
-                    allTemplates = [...hardcodedTemplates]; 
+    recipients = [];
+    nextSerialNumber = 1;
+    currentRecipientIndex = -1;
+    currentTemplateId = 'professional';
+    isCustomImageLoaded = false;
+    templateImage.src = '';
+    nextLogoId = 0;
+    currentView = 'front'; // NEW: Reset view to front
 
-                    for (const key in textFields) {
-                        if (textFields.hasOwnProperty(key) && savedState.textFields && savedState.textFields[key] !== undefined && textFields[key]) { // Added null check
-                            textFields[key].value = savedState.textFields[key];
-                        }
-                    }
-                    // NEW: Load back text fields content
-                    for (const key in backTextFields) {
-                        if (backTextFields.hasOwnProperty(key) && savedState.backTextFields && savedState.backTextFields[key] !== undefined && backTextFields[key]) { // Added null check
-                            backTextFields[key].value = savedState.backTextFields[key];
-                        }
-                    }
-
-                    recipients = savedState.recipients || [];
-                    
-                    draggableElements = [];
-                    const imageLoadPromises = [];
-                    let maxLogoId = -1;
-
-                    const defaultElMap = new Map(defaultDraggableTextElements.map(el => [el.id, el]));
-
-                    if (savedState.draggableElements) {
-                        savedState.draggableElements.forEach(savedEl => {
-                            if (savedEl.type === 'image') {
-                                const img = new Image();
-                                img.crossOrigin = "Anonymous";
-                                const imgPromise = new Promise((resolve, reject) => {
-                                    img.onload = () => {
-                                        draggableElements.push({
-                                            ...savedEl,
-                                            image: img,
-                                            calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
-                                        });
-                                        resolve();
-                                    };
-                                    img.onerror = () => {
-                                        console.error(`Failed to load image from ${savedEl.src}`);
-                                        draggableElements.push({ 
-                                            ...savedEl, 
-                                            image: null, 
-                                            loaded: false,
-                                            calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
-                                        });
-                                        resolve();
-                                    };
-                                    img.src = savedEl.src;
-                                });
-                                imageLoadPromises.push(imgPromise);
-                                const logoNum = parseInt(savedEl.id.split('-')[1]);
-                                if (!isNaN(logoNum)) {
-                                    maxLogoId = Math.max(maxLogoId, logoNum);
-                                }
-                            } else {
-                                const defaultProps = defaultElMap.get(savedEl.id) || {};
-                                draggableElements.push({
-                                    ...defaultProps,
-                                    ...savedEl,
-                                    calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
-                                });
-                            }
-                        });
-                    }
-
-                    // Ensure all default elements are present, adding any missing ones
-                    defaultDraggableTextElements.forEach(defaultEl => {
-                        const existingEl = draggableElements.find(el => el.id === defaultEl.id);
-                        if (!existingEl) {
-                            let contentToUse = defaultEl.content;
-                            if (defaultEl.view === 'front' && textFields[defaultEl.id]) {
-                                contentToUse = textFields[defaultEl.id].value;
-                            } else if (defaultEl.view === 'back' && backTextFields[defaultEl.id]) {
-                                contentToUse = backTextFields[defaultEl.id].value;
-                            }
-                            draggableElements.push({ ...defaultEl, content: contentToUse });
-                        }
-                    });
-                    
-                    nextLogoId = maxLogoId + 1;
-
-                    currentRecipientIndex = savedState.currentRecipientIndex !== undefined ? savedState.currentRecipientIndex : -1;
-                    currentTemplateId = savedState.currentTemplateId || 'professional';
-                    isCustomImageLoaded = savedState.isCustomImageLoaded || false;
-                    currentView = savedState.currentView || 'front'; // NEW: Load current view
-
-                    if (isCustomImageLoaded && savedState.customTemplateImageSrc) {
-                        const templateImagePromise = new Promise((resolve, reject) => {
-                            templateImage.onload = () => { resolve(); };
-                            templateImage.onerror = () => {
-                                console.error("Failed to load custom template image from saved state.");
-                                isCustomImageLoaded = false;
-                                selectProvidedTemplate(currentTemplateId);
-                                resolve();
-                            };
-                            templateImage.src = savedState.customTemplateImageSrc;
-                        });
-                        imageLoadPromises.push(templateImagePromise);
-                    } else {
-                        selectProvidedTemplate(currentTemplateId);
-                    }
-
-                    await Promise.all(imageLoadPromises);
-
-                    renderRecipientTable();
-                    renderLogoThumbnails();
-                    renderTemplateThumbnails(); // Render thumbnails AFTER allTemplates might have been updated
-                    drawCertificate();
-                    updateUI();
-                    updateSidebarControls();
-
-                }
-                catch (error) {
-                    console.error("Error loading state from localStorage:", error);
-                    await showModal("Terjadi kesalahan saat memuat data tersimpan. Aplikasi akan diatur ulang.");
-                    initializeDefaultState();
-                }
-            };
-
-            const initializeDefaultState = () => {
-                if (textFields.title) textFields.title.value = "Sertifikat Penghargaan";
-                if (textFields.subtitle) textFields.subtitle.value = "DIBERIKAN KEPADA";
-                if (textFields.description) textFields.description.value = "Atas partisipasi dan kontribusi luar biasa dalam Workshop Pengembangan Aplikasi Web Interaktif.";
-                if (textFields.headerCertificateText) textFields.headerCertificateText.value = "SERTIFIKAT";
-                if (textFields.issuer) textFields.issuer.value = "Sugandi,S.Kom";
-                if (textFields.issuerTitle) textFields.issuerTitle.value = "Direktur Program";
-                if (textFields.issuerNip) textFields.issuerNip.value = "1994xxxxxxxxxx1001";
-                if (textFields.issuer2) textFields.issuer2.value = "Prof. Siti Aminah";
-                if (textFields.issuerTitle2) textFields.issuerTitle2.value = "Kepala Departemen";
-                if (textFields.issuerNip2) textFields.issuerNip2.value = "198005152005022002";
-                if (textFields.date) textFields.date.value = "27 Juni 2025";
-
-                // NEW: Default values for back text fields
-                if (backTextFields.materi) backTextFields.materi.value = "- Pengenalan HTML & CSS (09:00 - 10:30)\n- JavaScript Dasar (10:45 - 12:00)\n- Studi Kasus Proyek (13:00 - 14:30)";
-                if (backTextFields.narasumber) backTextFields.narasumber.value = "- Budi Santoso, S.T., M.Kom\n- Dr. Indah Permata, M.Eng";
-                if (backTextFields.jam) backTextFields.jam.value = "09:00 - 16:00 WIB";
-
-                // Added null checks for recipient input fields
-                if (recipientNameInput) recipientNameInput.value = '';
-                if (recipientJabatanInput) recipientJabatanInput.value = '';
-                if (recipientNipInput) recipientNipInput.value = '';
-                if (recipientNuptkInput) recipientNuptkInput.value = '';
-                if (editingIndexInput) editingIndexInput.value = '';
-
-                recipients = [];
-                currentRecipientIndex = -1;
-                currentTemplateId = 'professional';
-                isCustomImageLoaded = false;
-                templateImage.src = '';
-                nextLogoId = 0;
-                currentView = 'front'; // NEW: Reset view to front
-
-                draggableElements = defaultDraggableTextElements.map(el => ({
-                    ...el,
-                    isColorCustomized: false,
-                    isFontFamilyCustomized: false,
-                    isFontSizeCustomized: false,
-                    isAlignCustomized: false,
-                    isPositionCustomized: false,
-                    calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
-                }));
-                
-                draggableElements.filter(el => el.type === 'text').forEach(el => {
-                    if (el.view === 'front') {
-                        if (el.id === 'recipientName') {
-                            el.content = 'Nama Penerima Contoh';
-                        } else if (el.id === 'recipientJabatan') { // Added back recipient fields
-                            el.content = 'Jabatan Contoh';
-                        } else if (el.id === 'recipientNip') {
-                            el.content = 'NIP Contoh';
-                        } else if (el.id === 'recipientNuptk') {
-                            el.content = 'NUPTK Contoh';
-                        } else if (textFields[el.id]) {
-                            el.content = textFields[el.id].value;
-                        }
-                        
-                        if (el.id === 'title') {
-                            el.x = canvas.width / 2;
-                            el.y = 100;
-                            el.textAlign = 'center';
-                            el.fontFamily = 'Playfair Display';
-                            el.fontSize = 70;
-                            el.fontStyle = 'bold';
-                        } else if (el.id === 'headerCertificateText') {
-                            el.x = canvas.width / 2;
-                            el.y = 75;
-                            el.textAlign = 'center';
-                            el.fontFamily = 'Inter';
-                            el.fontSize = 50;
-                            el.fontStyle = 'bold';
-                        }
-                    } else if (el.view === 'back') { // NEW: Set content for back elements
-                        if (backTextFields[el.id]) {
-                            el.content = backTextFields[el.id].value;
-                        }
-                    }
-                });
-                
-                allTemplates = [...hardcodedTemplates]; // Reset allTemplates to only hardcoded ones
-
-                selectProvidedTemplate(currentTemplateId);
-                renderRecipientTable();
-                renderLogoThumbnails();
-                renderTemplateThumbnails(); // Initial render of template thumbnails
-                updateUI();
-                updateSidebarControls();
-                localStorage.removeItem(LOCAL_STORAGE_KEY);
-                saveState();
-            };
-
-            const resetAllData = async () => {
-                const confirmReset = await showModal('Anda yakin ingin mereset semua data? Ini akan menghapus semua penerima, logo, dan pengaturan sertifikat.', true);
-                if (confirmReset) {
-                    localStorage.removeItem(LOCAL_STORAGE_KEY);
-                    initializeDefaultState();
-                    drawCertificate();
-                    await showModal('Semua data berhasil direset.');
-                }
-            };
-
-            const clearAllTextFields = async () => {
-                const confirmClear = await showModal('Anda yakin ingin mengosongkan semua bidang input teks?', true);
-                if (confirmClear) {
-                    for (const key in textFields) {
-                        if (textFields.hasOwnProperty(key) && textFields[key]) { // Added null check
-                            textFields[key].value = '';
-                            const draggableElement = draggableElements.find(el => el.id === key);
-                            if (draggableElement) {
-                                draggableElement.content = '';
-                            }
-                        }
-                    }
-                    // NEW: Clear back text fields
-                    for (const key in backTextFields) {
-                        if (backTextFields.hasOwnProperty(key) && backTextFields[key]) { // Added null check
-                            backTextFields[key].value = '';
-                            const draggableElement = draggableElements.find(el => el.id === key);
-                            if (draggableElement) {
-                                draggableElement.content = '';
-                            }
-                        }
-                    }
-                    drawCertificate();
-                    saveState();
-                    await showModal('Semua bidang input teks berhasil dikosongkan.');
-                }
-            };
-
-
-            // === EVENT HANDLERS ===
-            templateImage.onload = () => {
-                isCustomImageLoaded = true;
-                currentTemplateId = null; // No provided template selected when custom image is used
-                renderTemplateThumbnails(); // Re-render to clear selected class from old template
-                drawCertificate();
-                showLoading(false);
-                saveState();
-            };
-            templateImage.onerror = async () => {
-                isCustomImageLoaded = false;
-                selectProvidedTemplate(currentTemplateId);
-                showLoading(false);
-                await showModal('Gagal memuat gambar template. Pastikan URL benar dan gambar dapat diakses (CORS diizinkan).'); 
-                saveState();
-            };
-
-            function switchTab(group, activeId, contents) {
-                for (const id in group) {
-                    // Check if the element exists before toggling classes
-                    if (group[id]) {
-                        group[id].classList.toggle('active', id === activeId);
-                    }
-                    if (contents[id]) { // This is where contents[id] might be null
-                        contents[id].classList.toggle('hidden', id !== activeId);
-                    }
-                }
+    draggableElements = defaultDraggableTextElements.map(el => ({
+        ...el,
+        isColorCustomized: false,
+        isFontFamilyCustomized: false,
+        isFontSizeCustomized: false,
+        isAlignCustomized: false,
+        isPositionCustomized: false,
+        calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
+    }));
+    
+    draggableElements.filter(el => el.type === 'text').forEach(el => {
+        if (el.view === 'front') {
+            if (el.id === 'recipientName') {
+                el.content = 'Nama Penerima Contoh';
+            } else if (el.id === 'recipientJabatan') { // Added back recipient fields
+                el.content = 'Jabatan Contoh';
+            } else if (el.id === 'recipientNip') {
+                el.content = 'NIP Contoh';
+            } else if (el.id === 'recipientNuptk') {
+                el.content = 'NUPTK Contoh';
+            } else if (el.id === 'serialNumber') {
+                el.content = `${SERIAL_PREFIX}0001`;
+            } else if (textFields[el.id]) {
+                el.content = textFields[el.id].value;
             }
             
-            if (templateTabs.provided) templateTabs.provided.addEventListener('click', () => switchTab(templateTabs, 'provided', templateContents)); // Added null check
-            if (templateTabs.upload) templateTabs.upload.addEventListener('click', () => switchTab(templateTabs, 'upload', templateContents)); // Added null check
-            
-            // Re-added event listeners for dataTabs as their HTML elements are now present.
+            if (el.id === 'title') {
+                el.x = canvas.width / 2;
+                el.y = 100;
+                el.textAlign = 'center';
+                el.fontFamily = 'Playfair Display';
+                el.fontSize = 70;
+                el.fontStyle = 'bold';
+            } else if (el.id === 'headerCertificateText') {
+                el.x = canvas.width / 2;
+                el.y = 220;
+                el.textAlign = 'center';
+                el.fontFamily = 'Inter';
+                el.fontSize = 50;
+                el.fontStyle = 'bold';
+            }
+        } else if (el.view === 'back') { // NEW: Set content for back elements
+            if (backTextFields[el.id]) {
+                el.content = backTextFields[el.id].value;
+            }
+        }
+    });
+    
+    allTemplates = [...hardcodedTemplates]; // Reset allTemplates to only hardcoded ones
+
+    selectProvidedTemplate(currentTemplateId);
+    renderRecipientTable();
+    renderLogoThumbnails();
+    renderBackSessionsTable();
+    renderTemplateThumbnails(); 
+    updateUI();
+    updateBackAddButtonState();
+    updateSidebarControls();
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    saveState();
+};
+
+const resetAllData = async () => {
+    const confirmReset = await showModal('Anda yakin ingin mereset semua data? Ini akan menghapus semua penerima, logo, dan pengaturan sertifikat.', true);
+    if (!confirmReset) return;
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    initializeDefaultState();
+};
+
+// Clear only text inputs without resetting recipients/logos
+const clearAllTextFields = async () => {
+    const confirmClear = await showModal('Anda yakin ingin mengosongkan semua bidang input teks?', true);
+    if (!confirmClear) return;
+    for (const key in textFields) {
+        if (Object.prototype.hasOwnProperty.call(textFields, key) && textFields[key]) {
+            textFields[key].value = '';
+            const draggableElement = draggableElements.find(el => el.id === key);
+            if (draggableElement) draggableElement.content = '';
+        }
+    }
+    drawCertificate();
+    saveState();
+};
+
             if (dataTabs.manual) {
                 dataTabs.manual.addEventListener('click', () => switchTab(dataTabs, 'manual', dataContents));
             }
@@ -1419,6 +1544,22 @@
             }
 
             // Template thumbnail click listeners are now attached dynamically in renderTemplateThumbnails
+
+            // Add event listeners for template tabs (Provided vs Upload)
+            if (templateTabs.provided) {
+                templateTabs.provided.addEventListener('click', () => switchTab(templateTabs, 'provided', templateContents));
+            }
+            if (templateTabs.upload) {
+                templateTabs.upload.addEventListener('click', () => {
+                    switchTab(templateTabs, 'upload', templateContents);
+                    if (templateUploadInput) {
+                        // Ensure it's visible, then focus and open picker
+                        try { templateUploadInput.focus(); } catch (_) {}
+                        // Some browsers block programmatic click unless triggered by user gesture
+                        templateUploadInput.click();
+                    }
+                });
+            }
 
             if (templateUploadInput) { // Added null check
                 templateUploadInput.addEventListener('change', (e) => {
@@ -1603,7 +1744,14 @@
                         return;
                     }
 
-                    const newRecipientData = { name, jabatan, nip, nuptk };
+                    let serial;
+                    if (!isNaN(editingIndex) && editingIndex >= 0 && editingIndex < recipients.length) {
+                        serial = recipients[editingIndex].serial || generateSerial();
+                    } else {
+                        serial = generateSerial();
+                    }
+
+                    const newRecipientData = { name, jabatan, nip, nuptk, serial };
 
                     if (!isNaN(editingIndex) && editingIndex >= 0 && editingIndex < recipients.length) {
                         recipients[editingIndex] = newRecipientData;
@@ -1645,7 +1793,7 @@
                             const worksheet = workbook.Sheets[firstSheetName];
                             const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                             
-                            const newRecipients = json
+                            let newRecipients = json
                                 .map(row => ({
                                     name: row[0] ? String(row[0]).trim() : '',
                                     jabatan: row[1] ? String(row[1]).trim() : '',
@@ -1653,6 +1801,11 @@
                                     nuptk: row[3] ? String(row[3]).trim() : '',
                                 }))
                                 .filter(recipient => recipient.name !== '');
+
+                            newRecipients = newRecipients.map(rec => ({
+                                ...rec,
+                                serial: generateSerial(),
+                            }));
                             
                             if (newRecipients.length === 0) {
                                 await showModal('Tidak ada nama yang valid ditemukan di kolom pertama file Excel. Pastikan kolom A berisi nama.');
@@ -1813,6 +1966,7 @@
                     if (currentRecipientIndex > 0) {
                         currentRecipientIndex--;
                         drawCertificate();
+                        updateRecipientIndicator();
                         saveState();
                     }
                 });
@@ -1823,6 +1977,7 @@
                     if (currentRecipientIndex < recipients.length - 1) {
                         currentRecipientIndex++;
                         drawCertificate();
+                        updateRecipientIndicator();
                         saveState();
                     }
                 });
@@ -1833,6 +1988,7 @@
                 viewFrontBtn.addEventListener('click', () => {
                     currentView = 'front';
                     drawCertificate();
+                    updateUI();
                     saveState();
                 });
             }
@@ -1841,6 +1997,7 @@
                 viewBackBtn.addEventListener('click', () => {
                     currentView = 'back';
                     drawCertificate();
+                    updateUI();
                     saveState();
                 });
             }
@@ -2020,10 +2177,15 @@
                             elementWidth = el.width;
                             elementHeight = el.height;
                         } else { // type === 'text'
-                            left = el.calculatedX;
-                            top = el.calculatedY;
                             elementWidth = el.calculatedWidth;
                             elementHeight = el.calculatedHeight;
+                            if (el.textAlign === 'center') left = el.calculatedX - elementWidth / 2;
+                            else if (el.textAlign === 'right') left = el.calculatedX - elementWidth;
+                            else left = el.calculatedX; // left
+
+                            if (el.textBaseline === 'alphabetic') top = el.calculatedY - el.fontSize;
+                            else if (el.textBaseline === 'middle') top = el.calculatedY - elementHeight / 2;
+                            else top = el.calculatedY; // top
                         }
 
                         if (mouseX >= left && mouseX <= (left + elementWidth) &&
