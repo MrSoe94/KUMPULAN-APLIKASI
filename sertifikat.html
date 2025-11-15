@@ -158,20 +158,25 @@
                     </div>
                     <div>
                         <label for="tanggal_pelatihan" class="block text-sm font-medium text-gray-700">Tanggal Pelatihan</label>
-                        <input type="text" id="tanggal_pelatihan" value="04 - 06 Juli 2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <input type="text" id="tanggal_pelatihan" value="04 - 06 Desember 2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="lokasi_tanggal_terbit" class="block text-sm font-medium text-gray-700">Lokasi & Tanggal Terbit</label>
-                        <input type="text" id="lokasi_tanggal_terbit" value="Jombang, 07 Juli 2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <input type="text" id="lokasi_tanggal_terbit" value="Medan, 01 November 2025" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="nama_perusahaan" class="block text-sm font-medium text-gray-700">Nama Perusahaan / Penyelenggara</label>
-                        <input type="text" id="nama_perusahaan" value="PT Sumber Belajar Bersama" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <input type="text" id="nama_perusahaan" value="UPT SD NEGERI 067953" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
                     <div>
                         <label for="penandatangan" class="block text-sm font-medium text-gray-700">Nama Penandatangan</label>
-                        <input type="text" id="penandatangan" value="Muhammad Khoiron, M.Pd" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <input type="text" id="penandatangan" value="Sugandi, S.Kom" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
+                    <div>
+                        <label for="jabatan_penandatangan" class="block text-sm font-medium text-gray-700">Jabatan Penandatangan</label>
+                        <input type="text" id="jabatan_penandatangan" value="Founder / CEO Diklat Online" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    
                     <div>
                         <label for="logo_kiri" class="block text-sm font-medium text-gray-700">Unggah Logo Kiri</label>
                         <input type="file" id="logo_kiri" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
@@ -326,7 +331,7 @@
                             </div>
                             <div class="text-center text-sm leading-tight">
                                 <p id="preview-lokasi_tanggal_terbit" class="mb-1">Lokasi, Tanggal Terbit</p>
-                                <p class="mb-1">Founder / CEO Diklat Online</p>
+                                <p id="preview-jabatan_penandatangan" class="mb-1"></p>
                                 <img id="preview-tanda_tangan" src="https://placehold.co/120x60/ffffff/000000/png?text=TTD" alt="Tanda Tangan" class="h-12 mx-auto my-1 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/120x60/e2e8f0/000000?text=TTD';">
                                 <p id="preview-penandatangan" class="font-bold underline mt-1">Nama Penandatangan</p>
                             </div>
@@ -394,6 +399,7 @@
             lokasi_tanggal_terbit: document.getElementById('lokasi_tanggal_terbit'),
             nama_perusahaan: document.getElementById('nama_perusahaan'),
             penandatangan: document.getElementById('penandatangan'),
+            jabatan_penandatangan: document.getElementById('jabatan_penandatangan'),
             warna_border: document.getElementById('warna_border'),
             warna_judul: document.getElementById('warna_judul'),
             logo_kiri: document.getElementById('logo_kiri'),
@@ -431,6 +437,8 @@
             const defaultNamaPerusahaan = formInputs.nama_perusahaan.value;
 
             const defaultPenandatangan = formInputs.penandatangan.value;
+            const defaultJabatanPenandatangan = formInputs.jabatan_penandatangan.value;
+
             const defaultWarnaBorder = formInputs.warna_border.value;
             const defaultWarnaJudul = formInputs.warna_judul.value;
 
@@ -473,6 +481,11 @@
             const paragrafPenyelenggaraEl = document.getElementById('preview-nama_perusahaan_paragraf');
             if (paragrafPenyelenggaraEl) {
                 paragrafPenyelenggaraEl.textContent = defaultNamaPerusahaan;
+            }
+
+            const jabatanEl = document.getElementById('preview-jabatan_penandatangan');
+            if (jabatanEl) {
+                jabatanEl.textContent = defaultJabatanPenandatangan;
             }
 
             document.getElementById('certificate-border').style.borderColor = data.warna_border || defaultWarnaBorder;
@@ -674,7 +687,7 @@
             clearParticipantForm();
         });
         
-        ['pelatihan', 'tanggal_pelatihan', 'lokasi_tanggal_terbit', 'nama_perusahaan', 'penandatangan', 'warna_border', 'warna_judul'].forEach(id => {
+        ['pelatihan', 'tanggal_pelatihan', 'lokasi_tanggal_terbit', 'nama_perusahaan', 'penandatangan', 'jabatan_penandatangan', 'warna_border', 'warna_judul'].forEach(id => {
             formInputs[id].addEventListener('input', () => {
                 const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
                 updatePreview(currentData);
