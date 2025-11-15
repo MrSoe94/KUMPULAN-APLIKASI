@@ -263,7 +263,7 @@
                     <div id="certificate-border" class="border-2 p-5 h-full flex flex-col justify-between" style="border-color: #ca8a04;">
                         <header class="text-center mb-2">
                             <div class="relative flex items-center justify-center">
-                                <img id="preview-logo_kiri" src="https://seeklogo.com/images/D/diklat-logo-E195E1332F-seeklogo.com.png" alt="Logo Kiri" class="h-14 absolute left-0 top-1/2 -translate-y-1/2" onerror="this.onerror=null;this.src='https://placehold.co/64x64/e2e8f0/000000?text=Logo';">
+                                <img id="preview-logo_kiri" src="" alt="Logo Kiri" class="h-14 absolute left-0 top-1/2 -translate-y-1/2" style="display:none;">
                                 <h1 class="text-2xl font-bold text-gray-700">DiklatOnline</h1>
                             </div>
                             <div class="seal my-3">
@@ -334,7 +334,7 @@
     <script>
         // --- APLIKASI STATE ---
         let participants = [];
-        let logoKiriUrl = "https://seeklogo.com/images/D/diklat-logo-E195E1332F-seeklogo.com.png";
+        let logoKiriUrl = "";
         let tandaTanganUrl = "https://placehold.co/120x60/ffffff/000000/png?text=TTD";
         let selectedParticipantIndex = -1;
 
@@ -469,7 +469,19 @@
 
             document.getElementById('certificate-border').style.borderColor = data.warna_border || defaultWarnaBorder;
             document.getElementById('preview-judul').style.color = data.warna_judul || defaultWarnaJudul;
-            document.getElementById('preview-logo_kiri').src = data.logo_kiri_url || logoKiriUrl;
+
+            const logoKiriImg = document.getElementById('preview-logo_kiri');
+            const effectiveLogoKiri = data.logo_kiri_url || logoKiriUrl;
+            if (logoKiriImg) {
+                if (effectiveLogoKiri) {
+                    logoKiriImg.src = effectiveLogoKiri;
+                    logoKiriImg.style.display = '';
+                } else {
+                    logoKiriImg.src = '';
+                    logoKiriImg.style.display = 'none';
+                }
+            }
+
             document.getElementById('preview-tanda_tangan').src = data.tanda_tangan_url || tandaTanganUrl;
 
             const qrData = `Nama: ${data.nama || ''}\nNomor Sertifikat: ${data.nomor_sertifikat || ''}\nPelatihan: ${data.pelatihan || defaultPelatihan}\nPenyelenggara: ${defaultNamaPerusahaan}`;
