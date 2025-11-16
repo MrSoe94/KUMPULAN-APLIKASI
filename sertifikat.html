@@ -106,8 +106,49 @@
                 display: none;
             }
         }
+        
+        /* Template styles */
+        .template-classic #certificate-border {
+            border-width: 3px;
+            border-style: solid;
+        }
+        .template-classic header #preview-judul_header { letter-spacing: 0.5px; }
+        .template-classic .seal { box-shadow: 0 10px 25px rgba(202,138,4,0.45); }
+
+        .template-modern #certificate-border {
+            border-width: 6px;
+            border-style: double;
+        }
+        .template-modern .certificate-container {
+            background-image: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #eef2ff 100%);
+        }
+        .template-modern #preview-judul { text-transform: uppercase; letter-spacing: 1.5px; }
+
+        .template-elegant #certificate-border {
+            border-width: 2px;
+            border-style: solid;
+            box-shadow: inset 0 0 0 6px rgba(0,0,0,0.05);
+        }
+        .template-elegant header #preview-judul_header { font-weight: 700; }
+        .template-elegant #preview-judul { font-family: 'Tangerine', cursive; font-size: 7rem; }
+
+        .template-minimal #certificate-border {
+            border-width: 1px;
+            border-style: solid;
+        }
+        .template-minimal .certificate-container { background-image: none; }
+        .template-minimal header #preview-judul_header { display: none; }
+
+        .template-royal #certificate-border {
+            border-width: 8px;
+            border-style: ridge;
+        }
+        .template-royal .seal { transform: scale(1.05); }
+        .template-royal header #preview-judul_header { letter-spacing: 2px; text-transform: uppercase; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
+
 <body class="min-h-screen">
     <div class="container mx-auto max-w-6xl p-4 lg:p-8 xl:p-10">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -212,6 +253,16 @@
                         <label for="warna_judul" class="block text-sm font-medium text-gray-700">Warna Judul</label>
                         <input type="color" id="warna_judul" value="#ca8a04">
                     </div>
+                    <div>
+                        <label for="template_select" class="block text-sm font-medium text-gray-700">Pilih Template Sertifikat</label>
+                        <select id="template_select" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="classic">Classic</option>
+                            <option value="modern">Modern</option>
+                            <option value="elegant">Elegant</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="royal">Royal</option>
+                        </select>
+                    </div>
                     <div class="flex gap-2">
                         <button type="submit" id="submit-button" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Tambah Peserta</button>
                         <button type="button" id="clear-button" class="mt-4 w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Reset Form</button>
@@ -220,6 +271,14 @@
 
                 <div class="mt-8">
                     <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Daftar Peserta</h3>
+                    <div class="mb-4 flex flex-col gap-2">
+                        <input type="file" id="excel-upload-input" accept=".xlsx,.xls" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                        <div class="flex gap-2">
+                            <button id="import-excel-btn" type="button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md text-sm">Import dari Excel</button>
+                            <button id="download-excel-template-btn" type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md text-sm">Unduh Template</button>
+                        </div>
+                        <p class="text-xs text-gray-500">Header yang didukung: Nama, Nomor Sertifikat, NIP, NUPTK, NIDN, NISN, Unit Kerja, Nama Sekolah/Instansi, Hasil Evaluasi.</p>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left text-gray-500">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -399,6 +458,9 @@
         const programForm = document.getElementById('program-form');
         const programListBody = document.getElementById('program-list-body');
         const programTableBody = document.getElementById('program-table-body');
+        const excelUploadInput = document.getElementById('excel-upload-input');
+        const importExcelBtn = document.getElementById('import-excel-btn');
+        const downloadExcelTemplateBtn = document.getElementById('download-excel-template-btn');
 
         // --- FORM INPUTS ---
         const formInputs = {
@@ -862,12 +924,145 @@
             renderProgramTable();
         });
 
+        const templateSelect = document.getElementById('template_select');
+        function applyTemplate(id) {
+            const cont = document.getElementById('certificate');
+            if (!cont) return;
+            const classes = ['template-classic','template-modern','template-elegant','template-minimal','template-royal'];
+            classes.forEach(c => cont.classList.remove(c));
+            const map = {
+                classic: 'template-classic',
+                modern: 'template-modern',
+                elegant: 'template-elegant',
+                minimal: 'template-minimal',
+                royal: 'template-royal',
+            };
+            cont.classList.add(map[id] || 'template-classic');
+        }
+
+        if (templateSelect) {
+            templateSelect.addEventListener('change', (e) => {
+                applyTemplate(e.target.value);
+                const currentData = selectedParticipantIndex > -1 ? participants[selectedParticipantIndex] : {};
+                updatePreview(currentData);
+            });
+        }
+
         window.onload = () => {
             renderTable();
             renderProgramList();
             renderProgramTable();
             updatePreview();
+            if (templateSelect) applyTemplate(templateSelect.value);
         };
+
+        // === IMPORT PESERTA DARI EXCEL ===
+        function normalizeHeader(h) {
+            return String(h || '')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .replace(/\s*\/\s*/g, '/')
+                .trim();
+        }
+
+        function mapHeadersToIndex(headerRow) {
+            const idx = {};
+            headerRow.forEach((h, i) => {
+                const key = normalizeHeader(h);
+                if (!key) return;
+                idx[key] = i;
+            });
+
+            // alias mapping
+            function gi(...names){
+                for (const n of names){
+                    if (n in idx) return idx[n];
+                }
+                return -1;
+            }
+
+            return {
+                nama: gi('nama', 'nama lengkap', 'name'),
+                nomor_sertifikat: gi('nomor sertifikat', 'no sertifikat', 'no. sertifikat', 'nomor'),
+                nip: gi('nip', 'nip/nipppk', 'nip / nipppk'),
+                nuptk: gi('nuptk'),
+                nidn: gi('nidn'),
+                nisn: gi('nisn'),
+                unit_kerja: gi('unit kerja', 'unit'),
+                nama_sekolah_instansi: gi('nama sekolah/instansi', 'sekolah/instansi', 'sekolah', 'instansi', 'nama sekolah', 'nama instansi'),
+                hasil_evaluasi: gi('hasil evaluasi', 'nilai', 'nilai evaluasi')
+            };
+        }
+
+        function buildParticipantFromRow(row, cols){
+            const get = (i) => (i >= 0 && row[i] != null) ? String(row[i]).trim() : '';
+            return {
+                nama: get(cols.nama),
+                nomor_sertifikat: get(cols.nomor_sertifikat),
+                nip: get(cols.nip),
+                nuptk: get(cols.nuptk),
+                nidn: get(cols.nidn),
+                nisn: get(cols.nisn),
+                unit_kerja: get(cols.unit_kerja),
+                nama_sekolah_instansi: get(cols.nama_sekolah_instansi),
+                hasil_evaluasi: get(cols.hasil_evaluasi) || (formInputs.hasil_evaluasi ? formInputs.hasil_evaluasi.value : 'SANGAT BAIK'),
+            };
+        }
+
+        if (importExcelBtn) {
+            importExcelBtn.addEventListener('click', () => {
+                const file = excelUploadInput && excelUploadInput.files ? excelUploadInput.files[0] : null;
+                if (!file) { alert('Silakan pilih file Excel terlebih dahulu.'); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        if (!aoa || aoa.length === 0) { alert('Sheet kosong.'); return; }
+                        const header = aoa[0].map(v => v == null ? '' : v);
+                        const cols = mapHeadersToIndex(header);
+                        const imported = [];
+                        for (let r = 1; r < aoa.length; r++) {
+                            const row = aoa[r];
+                            if (!row || row.every(v => v == null || String(v).trim() === '')) continue;
+                            const p = buildParticipantFromRow(row, cols);
+                            if (p.nama) imported.push(p);
+                        }
+                        if (imported.length === 0) { alert('Tidak ada baris valid dengan kolom Nama.'); return; }
+                        participants = participants.concat(imported);
+                        renderTable();
+                        if (selectedParticipantIndex === -1 && participants.length > 0) {
+                            viewParticipant(participants.length - imported.length);
+                        }
+                        alert(`${imported.length} peserta berhasil diimpor.`);
+                    } catch (err) {
+                        console.error(err);
+                        alert('Gagal mengimpor file Excel. Pastikan format benar.');
+                    }
+                };
+                reader.onerror = () => alert('Gagal membaca file.');
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        if (downloadExcelTemplateBtn) {
+            downloadExcelTemplateBtn.addEventListener('click', () => {
+                try {
+                    const header = [['Nama','Nomor Sertifikat','NIP','NUPTK','NIDN','NISN','Unit Kerja','Nama Sekolah/Instansi','Hasil Evaluasi']];
+                    const example = [['Budi Sanjaya','123/ABC/2025','1987xxxxxxxxxxxx','12345678xxxxxxx','','','SMA Negeri 1 Indonesia','SMA Negeri 1 Jakarta','SANGAT BAIK']];
+                    const aoa = header.concat(example);
+                    const ws = XLSX.utils.aoa_to_sheet(aoa);
+                    ws['!cols'] = [{wch:28},{wch:18},{wch:20},{wch:18},{wch:12},{wch:12},{wch:24},{wch:28},{wch:16}];
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+                    XLSX.writeFile(wb, 'template_import_peserta.xlsx');
+                } catch (e) {
+                    alert('Gagal membuat template Excel.');
+                }
+            });
+        }
     </script>
 </body>
 </html>
