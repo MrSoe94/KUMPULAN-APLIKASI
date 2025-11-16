@@ -651,6 +651,31 @@
                 });
             }
 
+            function alignSerialWithDate() {
+                try {
+                    const serial = (draggableElements || []).find(el => el.id === 'serialNumber');
+                    const dateEl = (draggableElements || []).find(el => el.id === 'date');
+                    if (serial && dateEl && !serial.isPositionCustomized) {
+                        serial.x = 150;
+                        serial.y = dateEl.y;
+                    }
+                } catch (_) {}
+            }
+
+            function updateViewButtonsActive() {
+                if (!viewFrontBtn || !viewBackBtn) return;
+                viewFrontBtn.classList.toggle('active', currentView === 'front');
+                viewBackBtn.classList.toggle('active', currentView === 'back');
+            }
+
+            function updateUI() {
+                if (!elementControlsSection) return;
+                const shouldShow = currentView === 'front' && !!selectedDraggableElement;
+                elementControlsSection.classList.toggle('hidden', !shouldShow);
+                updateViewButtonsActive();
+                updateSidebarControls();
+            }
+
             // Ensure the sidebar controls reflect current selection and view
             function updateSidebarControls() {
                 if (!elementControlsSection || !elementSelectionHint || !fontControlsDiv || !imageControlsDiv) return;
@@ -704,23 +729,6 @@
                     fontControlsDiv.classList.add('hidden');
                     imageControlsDiv.classList.add('hidden');
                 }
-            }
-
-            function updateUI() {
-                if (!elementControlsSection) return;
-                if (currentView === 'front') {
-                    elementControlsSection.classList.remove('hidden');
-                } else {
-                    elementControlsSection.classList.add('hidden');
-                }
-                updateViewButtonsActive();
-                updateSidebarControls();
-            }
-
-            function updateViewButtonsActive() {
-                if (!viewFrontBtn || !viewBackBtn) return;
-                viewFrontBtn.classList.toggle('active', currentView === 'front');
-                viewBackBtn.classList.toggle('active', currentView === 'back');
             }
 
             function renderRecipientTable() {
@@ -1011,6 +1019,7 @@
                     currentTemplateId = state.currentTemplateId || 'professional';
                     isCustomImageLoaded = !!state.isCustomImageLoaded;
                     draggableElements = Array.isArray(state.draggableElements) ? state.draggableElements : defaultDraggableTextElements;
+                    alignSerialWithDate();
                     backSessions = Array.isArray(state.backSessions) ? state.backSessions : [];
                     backEditingIndex = typeof state.backEditingIndex === 'number' ? state.backEditingIndex : -1;
 
@@ -1050,7 +1059,7 @@
                 { id: 'issuer2', type: 'text', content: '', x: 1123 * 3 / 4, y: 660, fontSize: 30, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
                 { id: 'issuerTitle2', type: 'text', content: '', x: 1123 * 3 / 4, y: 690, fontSize: 24, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuer2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
                 { id: 'issuerNip2', type: 'text', content: '', x: 1123 * 3 / 4, y: 720, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 / 2 - 100, lineHeightMultiplier: 1.2, fixedRelative: 'issuerTitle2', isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
-                { id: 'serialNumber', type: 'text', content: 'INST-2025-0001', x: 150, y: 740, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 300, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
+                { id: 'serialNumber', type: 'text', content: 'INST-2025-0001', x: 150, y: 150, fontSize: 20, fontStyle: 'normal', fontFamily: 'Inter', color: '#555555', textAlign: 'left', textBaseline: 'alphabetic', maxWidth: 300, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'front', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
             
                 // Back of Certificate Elements (NEW)
                 { id: 'backHeader', type: 'text', content: 'Materi & Narasumber', x: 1123 / 2, y: 100, fontSize: 48, fontStyle: 'bold', fontFamily: 'Inter', color: '#333333', textAlign: 'center', textBaseline: 'alphabetic', maxWidth: 1123 - 200, lineHeightMultiplier: 1.2, isColorCustomized: false, isFontFamilyCustomized: false, isFontSizeCustomized: false, isAlignCustomized: false, isPositionCustomized: false, view: 'back', calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true },
@@ -1384,12 +1393,12 @@
                         const m = 28, r = 18;
                         ctx.beginPath();
                         ctx.moveTo(m + r, m);
-                        ctx.lineTo(w - m - r, m);
-                        ctx.quadraticCurveTo(w - m, m, w - m, m + r);
-                        ctx.lineTo(w - m, h - m - r);
-                        ctx.quadraticCurveTo(w - m, h - m, w - m - r, h - m);
-                        ctx.lineTo(m + r, h - m);
-                        ctx.quadraticCurveTo(m, h - m, m, h - m - r);
+                        ctx.lineTo(canvas.width - m - r, m);
+                        ctx.quadraticCurveTo(canvas.width - m, m, canvas.width - m, m + r);
+                        ctx.lineTo(canvas.width - m, canvas.height - m - r);
+                        ctx.quadraticCurveTo(canvas.width - m, canvas.height - m, canvas.width - m - r, canvas.height - m);
+                        ctx.lineTo(m + r, canvas.height - m);
+                        ctx.quadraticCurveTo(m, canvas.height - m, m, canvas.height - m - r);
                         ctx.lineTo(m, m + r);
                         ctx.quadraticCurveTo(m, m, m + r, m);
                         ctx.closePath();
@@ -1504,7 +1513,7 @@
                     initialBodyColor: '#f5f3ff',
                     initialRecipientNameColor: '#7c3aed',
                     draw: function(ctx, w, h) {
-                        const g = ctx.createLinearGradient(0,0,w,h);
+                        const g = ctx.createLinearGradient(0, 0, w, h);
                         g.addColorStop(0,'#7c3aed'); g.addColorStop(1,'#06b6d4');
                         ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
                         ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -1936,6 +1945,7 @@ const initializeDefaultState = () => {
         isPositionCustomized: false,
         calculatedX: 0, calculatedY: 0, calculatedWidth: 0, calculatedHeight: 0, isCurrentlyVisible: true
     }));
+    alignSerialWithDate();
     
     draggableElements.filter(el => el.type === 'text').forEach(el => {
         if (el.view === 'front') {
@@ -2696,9 +2706,7 @@ const clearAllTextFields = async () => {
                             elementStartY = el.y;
                             canvas.style.cursor = 'grabbing';
                             updateUI();
-                            if (elementControlsSection && currentView === 'front') {
-                                try { elementControlsSection.classList.remove('hidden'); } catch (_) {}
-                            }
+                            updateSidebarControls();
                             drawCertificate();
 
                             break;
@@ -2706,7 +2714,7 @@ const clearAllTextFields = async () => {
                     }
                     if (!draggedElement && selectedDraggableElement) {
                         selectedDraggableElement = null;
-                        updateSidebarControls();
+                        updateUI();
                         drawCertificate();
                     }
                 });
@@ -2752,6 +2760,9 @@ const clearAllTextFields = async () => {
                         draggedElement = null;
                         canvas.style.cursor = 'grab';
                         saveState();
+                    }
+                    if (selectedDraggableElement) {
+                        try { updateUI(); } catch (_) {}
                     }
                 });
             }
