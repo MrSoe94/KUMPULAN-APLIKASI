@@ -282,6 +282,9 @@
                             <li>**Kolom C:** NIP Penerima</li>
                             <li>**Kolom D:** NUPTK Penerima</li>
                         </ul>
+                        <button id="download-excel-template-btn" class="mb-2 w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-download"></i> Unduh Template Excel
+                        </button>
                         <input type="file" id="excel-upload-input" accept=".xlsx, .xls" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
                         <button id="import-excel-btn" class="mt-2 w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition">Import Nama</button>
                     </div>
@@ -520,6 +523,7 @@
             const editingIndexInput = document.getElementById('editing-index');
             const excelUploadInput = document.getElementById('excel-upload-input');
             const importExcelBtn = document.getElementById('import-excel-btn');
+            const downloadExcelTemplateBtn = document.getElementById('download-excel-template-btn');
             const recipientTableBody = document.getElementById('recipient-table-body');
             
             // Logo controls
@@ -560,6 +564,7 @@
             let recipients = [];
             let nextSerialNumber = 1;
             let backSessions = [];
+            let backEditingIndex = -1;
 
             let currentRecipientIndex = -1;
             let currentTemplateId = 'professional'; // Default template ID
@@ -644,6 +649,78 @@
                 Object.entries(contents).forEach(([key, el]) => {
                     if (!el) return; el.classList.toggle('hidden', key !== activeKey);
                 });
+            }
+
+            // Ensure the sidebar controls reflect current selection and view
+            function updateSidebarControls() {
+                if (!elementControlsSection || !elementSelectionHint || !fontControlsDiv || !imageControlsDiv) return;
+
+                if (currentView !== 'front') {
+                    elementControlsSection.classList.add('hidden');
+                    return;
+                }
+
+                elementControlsSection.classList.remove('hidden');
+
+                if (!selectedDraggableElement) {
+                    elementSelectionHint.classList.remove('hidden');
+                    fontControlsDiv.classList.add('hidden');
+                    imageControlsDiv.classList.add('hidden');
+                    return;
+                }
+
+                elementSelectionHint.classList.add('hidden');
+                if (selectedDraggableElement.type === 'text') {
+                    fontControlsDiv.classList.remove('hidden');
+                    imageControlsDiv.classList.add('hidden');
+
+                    if (fontSizeInput && typeof selectedDraggableElement.fontSize === 'number') {
+                        fontSizeInput.value = String(selectedDraggableElement.fontSize);
+                    }
+                    if (fontFamilySelect && selectedDraggableElement.fontFamily) {
+                        const exists = Array.from(fontFamilySelect.options).some(o => o.value === selectedDraggableElement.fontFamily);
+                        if (exists) fontFamilySelect.value = selectedDraggableElement.fontFamily;
+                    }
+                    if (textColorInput && selectedDraggableElement.color) {
+                        textColorInput.value = selectedDraggableElement.color;
+                    }
+                    if (textAlignSelect && selectedDraggableElement.textAlign) {
+                        textAlignSelect.value = selectedDraggableElement.textAlign;
+                    }
+                    if (fontWeightBold) {
+                        fontWeightBold.checked = (selectedDraggableElement.fontStyle || '').toLowerCase().includes('bold');
+                    }
+                } else if (selectedDraggableElement.type === 'image') {
+                    imageControlsDiv.classList.remove('hidden');
+                    fontControlsDiv.classList.add('hidden');
+
+                    if (imageWidthInput && typeof selectedDraggableElement.width === 'number') {
+                        imageWidthInput.value = String(selectedDraggableElement.width);
+                    }
+                    if (imageHeightInput && typeof selectedDraggableElement.height === 'number') {
+                        imageHeightInput.value = String(selectedDraggableElement.height);
+                    }
+                } else {
+                    fontControlsDiv.classList.add('hidden');
+                    imageControlsDiv.classList.add('hidden');
+                }
+            }
+
+            function updateUI() {
+                if (!elementControlsSection) return;
+                if (currentView === 'front') {
+                    elementControlsSection.classList.remove('hidden');
+                } else {
+                    elementControlsSection.classList.add('hidden');
+                }
+                updateViewButtonsActive();
+                updateSidebarControls();
+            }
+
+            function updateViewButtonsActive() {
+                if (!viewFrontBtn || !viewBackBtn) return;
+                viewFrontBtn.classList.toggle('active', currentView === 'front');
+                viewBackBtn.classList.toggle('active', currentView === 'back');
             }
 
             function renderRecipientTable() {
@@ -772,6 +849,8 @@
                 }
                 backSessions.forEach((s, idx) => {
                     const tr = document.createElement('tr');
+                    tr.dataset.index = String(idx);
+                    tr.className = 'row-session';
                     tr.innerHTML = `
                         <td class="px-3 py-2 text-center">${idx + 1}</td>
                         <td class="px-3 py-2">${s.speaker || ''}</td>
@@ -779,9 +858,27 @@
                         <td class="px-3 py-2">${s.time || ''}</td>
                         <td class="px-3 py-2 text-center">${s.hours || ''}</td>
                         <td class="px-3 py-2 text-center">
+                            <button class="text-blue-600 hover:underline btn-edit-session" data-index="${idx}">Edit</button>
+                            <span class="mx-1">|</span>
                             <button class="text-red-600 hover:underline btn-del-session" data-index="${idx}">Hapus</button>
                         </td>`;
                     backSessionsBody.appendChild(tr);
+                    // Row click to edit (ignore clicks on buttons)
+                    tr.addEventListener('click', (ev) => {
+                        if (ev.target.closest('button')) return;
+                        const i = parseInt(tr.dataset.index, 10);
+                        if (!isNaN(i) && backSessions[i]) {
+                            const s = backSessions[i];
+                            if (backSpeakerInputEl) backSpeakerInputEl.value = s.speaker || '';
+                            if (backTopicInputEl) backTopicInputEl.value = s.topic || '';
+                            if (backTimeInputEl) backTimeInputEl.value = s.time || '';
+                            if (backHoursInputEl) backHoursInputEl.value = s.hours === '' ? '' : String(s.hours);
+                            backEditingIndex = i;
+                            if (backAddRowBtn) backAddRowBtn.innerHTML = '<i class="fas fa-save"></i> Perbarui Sesi';
+                            updateBackAddButtonState();
+                            saveState();
+                        }
+                    });
                 });
                 // Append Total JP row
                 const totalJp = backSessions.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
@@ -796,17 +893,41 @@
                     const i = parseInt(e.currentTarget.dataset.index, 10);
                     if (!isNaN(i)) {
                         backSessions.splice(i, 1);
+                        if (backEditingIndex === i) {
+                            backEditingIndex = -1;
+                            if (backSpeakerInputEl) backSpeakerInputEl.value = '';
+                            if (backTopicInputEl) backTopicInputEl.value = '';
+                            if (backTimeInputEl) backTimeInputEl.value = '';
+                            if (backHoursInputEl) backHoursInputEl.value = '';
+                            if (backAddRowBtn) backAddRowBtn.innerHTML = '<i class="fas fa-plus"></i> Tambah Sesi';
+                        } else if (backEditingIndex > i) {
+                            backEditingIndex -= 1;
+                        }
                         renderBackSessionsTable();
                         if (currentView === 'back') drawCertificate();
                         saveState();
                         updateBackAddButtonState();
                     }
                 }));
+                backSessionsBody.querySelectorAll('.btn-edit-session').forEach(btn => btn.addEventListener('click', (e) => {
+                    const i = parseInt(e.currentTarget.dataset.index, 10);
+                    if (!isNaN(i) && backSessions[i]) {
+                        const s = backSessions[i];
+                        if (backSpeakerInputEl) backSpeakerInputEl.value = s.speaker || '';
+                        if (backTopicInputEl) backTopicInputEl.value = s.topic || '';
+                        if (backTimeInputEl) backTimeInputEl.value = s.time || '';
+                        if (backHoursInputEl) backHoursInputEl.value = s.hours === '' ? '' : String(s.hours);
+                        backEditingIndex = i;
+                        if (backAddRowBtn) backAddRowBtn.innerHTML = '<i class="fas fa-save"></i> Perbarui Sesi';
+                        updateBackAddButtonState();
+                        saveState();
+                    }
+                }));
             }
 
             function updateBackAddButtonState() {
                 if (!backAddRowBtn) return;
-                const disabled = Array.isArray(backSessions) && backSessions.length >= 10;
+                const disabled = Array.isArray(backSessions) && backSessions.length >= 10 && backEditingIndex === -1;
                 backAddRowBtn.disabled = disabled;
                 if (disabled) backAddRowBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 else backAddRowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -817,8 +938,8 @@
                 if (!backSpeakerInputEl || !backTopicInputEl || !backTimeInputEl || !backHoursInputEl) return;
                 if (!Array.isArray(backSessions)) backSessions = [];
 
-                // Limit rows to 10
-                if (backSessions.length >= 10) {
+                // Limit rows
+                if (backSessions.length >= 10 && backEditingIndex === -1) {
                     showModal('Maksimal 10 sesi. Hapus salah satu untuk menambah yang baru.');
                     return;
                 }
@@ -837,8 +958,13 @@
                     showModal('JP harus berupa angka positif.');
                     return;
                 }
-
-                backSessions.push({ speaker, topic, time, hours: hoursStr === '' ? '' : hours });
+                if (backEditingIndex >= 0 && backEditingIndex < backSessions.length) {
+                    backSessions[backEditingIndex] = { speaker, topic, time, hours: hoursStr === '' ? '' : hours };
+                    backEditingIndex = -1;
+                    if (backAddRowBtn) backAddRowBtn.textContent = '+ Tambah Sesi';
+                } else {
+                    backSessions.push({ speaker, topic, time, hours: hoursStr === '' ? '' : hours });
+                }
                 renderBackSessionsTable();
                 updateBackAddButtonState();
                 saveState();
@@ -867,7 +993,9 @@
                         templateImageSrc: templateImage.src || '',
                         draggableElements: draggableElements.map(el => el.type === 'image' ? { ...el, image: undefined } : el),
                         backSessions,
+                        backEditingIndex,
                     };
+
                     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
                 } catch (e) { /* ignore */ }
             }
@@ -884,6 +1012,8 @@
                     isCustomImageLoaded = !!state.isCustomImageLoaded;
                     draggableElements = Array.isArray(state.draggableElements) ? state.draggableElements : defaultDraggableTextElements;
                     backSessions = Array.isArray(state.backSessions) ? state.backSessions : [];
+                    backEditingIndex = typeof state.backEditingIndex === 'number' ? state.backEditingIndex : -1;
+
                     if (isCustomImageLoaded && state.templateImageSrc) {
                         selectCustomTemplateImage(state.templateImageSrc);
                     } else {
@@ -1036,12 +1166,196 @@
                         ctx.fillRect(0, 0, w, h);
                         // Double gold border
                         ctx.strokeStyle = '#c5a66e';
-                        ctx.lineWidth = 3;
-                        ctx.strokeRect(26, 26, w - 52, h - 52);
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(22, 22, w - 44, h - 44);
                         ctx.strokeStyle = '#a88734';
                         ctx.lineWidth = 2;
                         ctx.strokeRect(40, 40, w - 80, h - 80);
-                        // Subtle corner ornaments
+                        // Corner ornament arcs
+                        ctx.strokeStyle = '#c5a66e';
+                        ctx.lineWidth = 1.5;
+                        const r = 28;
+                        ctx.beginPath(); ctx.arc(68, 68, r, Math.PI, 1.5*Math.PI); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(w-68, 68, r, 1.5*Math.PI, 0); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(68, h-68, r, 0.5*Math.PI, Math.PI); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(w-68, h-68, r, 0, 0.5*Math.PI); ctx.stroke();
+                    }
+                },
+                {
+                    id: 'tech',
+                    name: 'Tech',
+                    initialHeaderColor: '#111827',
+                    initialBodyColor: '#0ea5e9',
+                    initialRecipientNameColor: '#22d3ee',
+                    draw: function(ctx, w, h) {
+                        // Bold diagonal split with cyan accents
+                        const g = ctx.createLinearGradient(0, 0, w, h);
+                        g.addColorStop(0, '#111827');
+                        g.addColorStop(1, '#0f172a');
+                        ctx.fillStyle = g;
+                        ctx.fillRect(0, 0, w, h);
+                        // Cyan diagonal shape
+                        ctx.fillStyle = '#06b6d4';
+                        ctx.beginPath();
+                        ctx.moveTo(0, h * 0.25);
+                        ctx.lineTo(w * 0.6, 0);
+                        ctx.lineTo(w, 0);
+                        ctx.lineTo(w, h * 0.2);
+                        ctx.lineTo(w * 0.35, h * 0.45);
+                        ctx.closePath();
+                        ctx.fill();
+                        // Accent dots
+                        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                        for (let i = 0; i < 50; i++) {
+                            const x = Math.random() * w;
+                            const y = Math.random() * h;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                },
+                {
+                    id: 'classic-blue',
+                    name: 'Klasik Biru',
+                    initialHeaderColor: '#1e3a8a',
+                    initialBodyColor: '#f8fafc',
+                    initialRecipientNameColor: '#1e3a8a',
+                    draw: function(ctx, w, h) {
+                        // White background
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, w, h);
+                        // Double blue border
+                        ctx.strokeStyle = '#1e3a8a';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(20, 20, w - 40, h - 40);
+                        ctx.strokeStyle = '#93c5fd';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(36, 36, w - 72, h - 72);
+                        // Blue ribbons top and bottom
+                        ctx.fillStyle = '#1e3a8a';
+                        ctx.fillRect(0, 0, w, h * 0.10);
+                        ctx.fillRect(0, h - h * 0.08, w, h * 0.08);
+                        // Gold accent lines
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.fillRect(0, h * 0.10, w, 4);
+                        ctx.fillRect(0, h - h * 0.08 - 4, w, 4);
+                    }
+                },
+                {
+                    id: 'modren',
+                    name: 'Modren',
+                    initialHeaderColor: '#0ea5e9',
+                    initialBodyColor: '#111827',
+                    initialRecipientNameColor: '#22c55e',
+                    draw: function(ctx, w, h) {
+                        // Bold diagonal split with cyan accents
+                        const g = ctx.createLinearGradient(0, 0, w, h);
+                        g.addColorStop(0, '#111827');
+                        g.addColorStop(1, '#0f172a');
+                        ctx.fillStyle = g;
+                        ctx.fillRect(0, 0, w, h);
+                        // Cyan diagonal shape
+                        ctx.fillStyle = '#06b6d4';
+                        ctx.beginPath();
+                        ctx.moveTo(0, h * 0.25);
+                        ctx.lineTo(w * 0.6, 0);
+                        ctx.lineTo(w, 0);
+                        ctx.lineTo(w, h * 0.2);
+                        ctx.lineTo(w * 0.35, h * 0.45);
+                        ctx.closePath();
+                        ctx.fill();
+                        // Accent dots
+                        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                        for (let i = 0; i < 50; i++) {
+                            const x = Math.random() * w;
+                            const y = Math.random() * h;
+                            ctx.beginPath();
+                            ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                },
+                {
+                    id: 'office',
+                    name: 'Office',
+                    initialHeaderColor: '#374151',
+                    initialBodyColor: '#F3F4F6',
+                    initialRecipientNameColor: '#111827',
+                    draw: function(ctx, w, h) {
+                        // Clean paper with header and footer bars
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.fillStyle = '#374151';
+                        ctx.fillRect(0, 0, w, 18);
+                        ctx.fillRect(0, h - 18, w, 18);
+                        // Subtle grid watermark
+                        ctx.strokeStyle = 'rgba(156,163,175,0.15)';
+                        ctx.lineWidth = 1;
+                        const step = 40;
+                        for (let x = 20; x < w; x += step) {
+                            ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, h - 20); ctx.stroke();
+                        }
+                        for (let y = 20; y < h; y += step) {
+                            ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(w - 20, y); ctx.stroke();
+                        }
+                        // Thin inner border
+                        ctx.strokeStyle = '#E5E7EB';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(24, 24, w - 48, h - 48);
+                    }
+                },
+                {
+                    id: 'glamor',
+                    name: 'Glamor',
+                    initialHeaderColor: '#111111',
+                    initialBodyColor: '#0b0b0b',
+                    initialRecipientNameColor: '#d4af37',
+                    draw: function(ctx, w, h) {
+                        // Dark luxe background
+                        const g = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w,h)/1.2);
+                        g.addColorStop(0,'#0b0b0b');
+                        g.addColorStop(1,'#000000');
+                        ctx.fillStyle = g;
+                        ctx.fillRect(0, 0, w, h);
+                        // Gold double border
+                        ctx.strokeStyle = '#caa75e';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(30, 30, w-60, h-60);
+                        ctx.strokeStyle = '#d4af37';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(46, 46, w-92, h-92);
+                        // Sparkles
+                        ctx.fillStyle = 'rgba(212,175,55,0.6)';
+                        for (let i = 0; i < 60; i++) {
+                            const x = 60 + Math.random() * (w - 120);
+                            const y = 60 + Math.random() * (h - 120);
+                            const r = Math.random() * 1.8 + 0.4;
+                            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                        }
+                    }
+                },
+                {
+                    id: 'classic-gold',
+                    name: 'Classic Gold',
+                    initialHeaderColor: '#a16207',
+                    initialBodyColor: '#faf7ef',
+                    initialRecipientNameColor: '#7c5a27',
+                    draw: function(ctx, w, h) {
+                        // Parchment-like background
+                        const g = ctx.createLinearGradient(0, 0, 0, h);
+                        g.addColorStop(0,'#fcfbf7');
+                        g.addColorStop(1,'#f3efe3');
+                        ctx.fillStyle = g;
+                        ctx.fillRect(0, 0, w, h);
+                        // Ornate gold borders
+                        ctx.strokeStyle = '#c5a66e';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(22, 22, w - 44, h - 44);
+                        ctx.strokeStyle = '#a88734';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(40, 40, w - 80, h - 80);
+                        // Corner ornament arcs
                         ctx.strokeStyle = '#c5a66e';
                         ctx.lineWidth = 1.5;
                         const r = 24;
@@ -1052,40 +1366,202 @@
                     }
                 },
                 {
-                    id: 'tech',
-                    name: 'Tech',
-                    initialHeaderColor: '#111827',
-                    initialBodyColor: '#0ea5e9',
-                    initialRecipientNameColor: '#06b6d4',
+                    id: 'pastel',
+                    name: 'Pastel',
+                    initialHeaderColor: '#60a5fa',
+                    initialBodyColor: '#f8fafc',
+                    initialRecipientNameColor: '#ec4899',
                     draw: function(ctx, w, h) {
-                        // Diagonal gradient background
+                        // Soft gradient background
                         const g = ctx.createLinearGradient(0, 0, w, h);
-                        g.addColorStop(0, '#0f172a');
-                        g.addColorStop(1, '#0ea5e9');
+                        g.addColorStop(0,'#fdf2f8');
+                        g.addColorStop(0.5,'#eff6ff');
+                        g.addColorStop(1,'#ecfeff');
                         ctx.fillStyle = g;
                         ctx.fillRect(0, 0, w, h);
-                        // Geometric lines
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                        ctx.lineWidth = 1;
-                        for (let i = 0; i < 6; i++) {
-                            ctx.beginPath();
-                            ctx.moveTo(0, (h/6) * i + 40);
-                            ctx.bezierCurveTo(w * 0.25, h * 0.6, w * 0.3, h * 0.8, w * 0.5, h * 0.75);
-                            ctx.bezierCurveTo(w * 0.75, h * 0.7, w * 0.8, h * 0.9, w, h * 0.8);
-                            ctx.lineTo(w, h);
-                            ctx.lineTo(0, h);
-                            ctx.closePath();
-                            ctx.stroke();
-                        }
-                        // Accent nodes
-                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                        for (let i = 0; i < 8; i++) {
-                            const x = (w / 8) * i + 50;
-                            const y = (h / 6) * (i % 6) + 60;
-                            ctx.beginPath();
-                            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
+                        // Rounded panel
+                        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                        const m = 28, r = 18;
+                        ctx.beginPath();
+                        ctx.moveTo(m + r, m);
+                        ctx.lineTo(w - m - r, m);
+                        ctx.quadraticCurveTo(w - m, m, w - m, m + r);
+                        ctx.lineTo(w - m, h - m - r);
+                        ctx.quadraticCurveTo(w - m, h - m, w - m - r, h - m);
+                        ctx.lineTo(m + r, h - m);
+                        ctx.quadraticCurveTo(m, h - m, m, h - m - r);
+                        ctx.lineTo(m, m + r);
+                        ctx.quadraticCurveTo(m, m, m + r, m);
+                        ctx.closePath();
+                        ctx.fill();
+                        // Border accent
+                        ctx.strokeStyle = '#0284c7';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                        // Soft shapes
+                        ctx.fillStyle = 'rgba(96,165,250,0.15)';
+                        ctx.beginPath(); ctx.arc(w-90, 90, 36, 0, Math.PI*2); ctx.fill();
+                        ctx.fillStyle = 'rgba(236,72,153,0.12)';
+                        ctx.beginPath(); ctx.arc(110, h-110, 44, 0, Math.PI*2); ctx.fill();
+                    }
+                },
+                {
+                    id: 'clean',
+                    name: 'Clean',
+                    initialHeaderColor: '#2563eb',
+                    initialBodyColor: '#ffffff',
+                    initialRecipientNameColor: '#111827',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+                        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.strokeRect(24,24,w-48,h-48);
+                        ctx.fillStyle = '#2563eb'; ctx.fillRect(0,0,w,10);
+                    }
+                },
+                {
+                    id: 'corporate',
+                    name: 'Corporate',
+                    initialHeaderColor: '#0f172a',
+                    initialBodyColor: '#f8fafc',
+                    initialRecipientNameColor: '#0f172a',
+                    draw: function(ctx, w, h) {
+                        const g = ctx.createLinearGradient(0,0,w,0);
+                        g.addColorStop(0,'#0f172a'); g.addColorStop(1,'#1f2937');
+                        ctx.fillStyle = '#f8fafc'; ctx.fillRect(0,0,w,h);
+                        ctx.fillStyle = g; ctx.fillRect(0,0,w,60);
+                        ctx.fillStyle = '#38bdf8'; ctx.fillRect(0,60,w,4);
+                    }
+                },
+                {
+                    id: 'nature',
+                    name: 'Nature',
+                    initialHeaderColor: '#047857',
+                    initialBodyColor: '#ecfdf5',
+                    initialRecipientNameColor: '#065f46',
+                    draw: function(ctx, w, h) {
+                        const g = ctx.createLinearGradient(0, 0, 0, h);
+                        g.addColorStop(0,'#ecfdf5'); g.addColorStop(1,'#d1fae5');
+                        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+                        ctx.fillStyle = '#10b981'; ctx.fillRect(0,h-18,w,18);
+                        ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3; ctx.strokeRect(28,28,w-56,h-56);
+                    }
+                },
+                {
+                    id: 'academic',
+                    name: 'Academic',
+                    initialHeaderColor: '#1f2937',
+                    initialBodyColor: '#f9fafb',
+                    initialRecipientNameColor: '#1f2937',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#f9fafb'; ctx.fillRect(0,0,w,h);
+                        ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 2; ctx.strokeRect(36,36,w-72,h-72);
+                        ctx.fillStyle = '#111827'; ctx.fillRect(0,0,w,14);
+                        ctx.fillStyle = '#9ca3af'; ctx.fillRect(0,14,w,4);
+                    }
+                },
+                {
+                    id: 'celebration',
+                    name: 'Celebration',
+                    initialHeaderColor: '#f59e0b',
+                    initialBodyColor: '#fff7ed',
+                    initialRecipientNameColor: '#b45309',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#fff7ed'; ctx.fillRect(0,0,w,h);
+                        ctx.fillStyle = '#fde68a';
+                        for (let i=0;i<10;i++){ ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, Math.random()*6+2,0,Math.PI*2); ctx.fill(); }
+                        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3; ctx.strokeRect(20,20,w-40,h-40);
+                    }
+                },
+                {
+                    id: 'vintage',
+                    name: 'Vintage',
+                    initialHeaderColor: '#92400e',
+                    initialBodyColor: '#faf3e0',
+                    initialRecipientNameColor: '#7c2d12',
+                    draw: function(ctx, w, h) {
+                        const g = ctx.createLinearGradient(0,0,0,h);
+                        g.addColorStop(0,'#fbf4e4'); g.addColorStop(1,'#f3e7cf');
+                        ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+                        ctx.strokeStyle = '#b45309'; ctx.lineWidth = 2; ctx.strokeRect(26,26,w-52,h-52);
+                        ctx.setLineDash([6,4]); ctx.strokeRect(42,42,w-84,h-84); ctx.setLineDash([]);
+                    }
+                },
+                {
+                    id: 'minimal-cream',
+                    name: 'Minimal Cream',
+                    initialHeaderColor: '#111827',
+                    initialBodyColor: '#fffaf0',
+                    initialRecipientNameColor: '#1f2937',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#fffaf0'; ctx.fillRect(0,0,w,h);
+                        ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.strokeRect(30,30,w-60,h-60);
+                        ctx.fillStyle = '#111827'; ctx.fillRect(0,0,w,8);
+                    }
+                },
+                {
+                    id: 'gradient',
+                    name: 'Gradient',
+                    initialHeaderColor: '#7c3aed',
+                    initialBodyColor: '#f5f3ff',
+                    initialRecipientNameColor: '#7c3aed',
+                    draw: function(ctx, w, h) {
+                        const g = ctx.createLinearGradient(0,0,w,h);
+                        g.addColorStop(0,'#7c3aed'); g.addColorStop(1,'#06b6d4');
+                        ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+                        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                        for (let i=0;i<5;i++){ ctx.fillRect(0, i*(h/5)+2, w, 2); }
+                    }
+                },
+                {
+                    id: 'monochrome',
+                    name: 'Monochrome',
+                    initialHeaderColor: '#111827',
+                    initialBodyColor: '#f3f4f6',
+                    initialRecipientNameColor: '#111827',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#f3f4f6'; ctx.fillRect(0,0,w,h);
+                        ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 2; ctx.strokeRect(24,24,w-48,h-48);
+                        ctx.fillStyle = '#111827'; ctx.fillRect(0,h-12,w,12);
+                    }
+                },
+                {
+                    id: 'bold-stripe',
+                    name: 'Bold Stripe',
+                    initialHeaderColor: '#dc2626',
+                    initialBodyColor: '#ffffff',
+                    initialRecipientNameColor: '#1f2937',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+                        ctx.fillStyle = '#dc2626'; ctx.fillRect(0,0,w,22);
+                        ctx.fillStyle = '#2563eb'; ctx.fillRect(0,22,w,8);
+                        ctx.fillStyle = '#16a34a'; ctx.fillRect(0,30,w,6);
+                        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2; ctx.strokeRect(20,20,w-40,h-40);
+                    }
+                },
+                {
+                    id: 'soft-purple',
+                    name: 'Soft Purple',
+                    initialHeaderColor: '#7c3aed',
+                    initialBodyColor: '#f5f3ff',
+                    initialRecipientNameColor: '#6d28d9',
+                    draw: function(ctx, w, h) {
+                        const g = ctx.createRadialGradient(w*0.3,h*0.3,0,w*0.5,h*0.5,Math.max(w,h));
+                        g.addColorStop(0,'#ede9fe'); g.addColorStop(1,'#f5f3ff');
+                        ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+                        ctx.strokeStyle = '#ddd6fe'; ctx.lineWidth = 3; ctx.strokeRect(26,26,w-52,h-52);
+                    }
+                },
+                {
+                    id: 'newspaper',
+                    name: 'Newspaper',
+                    initialHeaderColor: '#111827',
+                    initialBodyColor: '#f8fafc',
+                    initialRecipientNameColor: '#111827',
+                    draw: function(ctx, w, h) {
+                        ctx.fillStyle = '#f8fafc'; ctx.fillRect(0,0,w,h);
+                        ctx.fillStyle = '#e5e7eb';
+                        for (let y=30; y<h-30; y+=18) { ctx.fillRect(36,y,w-72,1); }
+                        ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 2; ctx.strokeRect(32,32,w-64,h-64);
+                        ctx.fillStyle = '#111827'; ctx.fillRect(0,0,w,14);
                     }
                 },
             ];
@@ -1835,6 +2311,23 @@ const clearAllTextFields = async () => {
                 });
             }
 
+            if (downloadExcelTemplateBtn) {
+                downloadExcelTemplateBtn.addEventListener('click', () => {
+                    try {
+                        const header = [['Nama', 'Jabatan', 'NIP', 'NUPTK']];
+                        const example = [['Andi Wijaya', 'Manajer Proyek', '198510202010011005', '1234567890123456']];
+                        const aoa = header.concat(example);
+                        const ws = XLSX.utils.aoa_to_sheet(aoa);
+                        ws['!cols'] = [{ wch: 30 }, { wch: 24 }, { wch: 22 }, { wch: 20 }];
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Template');
+                        XLSX.writeFile(wb, 'template_import_penerima.xlsx');
+                    } catch (e) {
+                        showModal('Gagal membuat template Excel.');
+                    }
+                });
+            }
+
             const handleEdit = (event) => {
                 const index = parseInt(event.currentTarget.dataset.index, 10);
                 if (index >= 0 && index < recipients.length) {
@@ -2163,8 +2656,8 @@ const clearAllTextFields = async () => {
                     for (let i = draggableElements.length - 1; i >= 0; i--) {
                         const el = draggableElements[i];
 
-                        // Skip if not currently visible or is a fixed-relative element (like 'dateLabel')
-                        if (!el.isCurrentlyVisible || (el.id === 'dateLabel' && el.fixedRelative === 'date')) {
+                        // Skip if not currently visible
+                        if (!el.isCurrentlyVisible) {
                             continue;
                         }
 
@@ -2193,13 +2686,21 @@ const clearAllTextFields = async () => {
                             
                             draggedElement = el;
                             selectedDraggableElement = el;
+                            // Ensure the UI reflects the selected element's side (front/back)
+                            if (el.view && el.view !== currentView) {
+                                currentView = el.view;
+                            }
                             dragStartX = mouseX;
                             dragStartY = mouseY;
                             elementStartX = el.x;
                             elementStartY = el.y;
                             canvas.style.cursor = 'grabbing';
-                            updateSidebarControls();
+                            updateUI();
+                            if (elementControlsSection && currentView === 'front') {
+                                try { elementControlsSection.classList.remove('hidden'); } catch (_) {}
+                            }
                             drawCertificate();
+
                             break;
                         }
                     }
@@ -2229,7 +2730,7 @@ const clearAllTextFields = async () => {
                     let newY = elementStartY + dy;
 
                     // Mark elements as position customized if they are moved from their default dynamic positions
-                    if (['recipientJabatan', 'recipientNip', 'recipientNuptk', 'description'].includes(draggedElement.id) ||
+                    if (['recipientJabatan', 'recipientNip', 'recipientNuptk', 'description', 'date', 'dateLabel'].includes(draggedElement.id) ||
                         ['backMateri', 'backNarasumber', 'backJam'].includes(draggedElement.id)) {
                         draggedElement.isPositionCustomized = true;
                     }
@@ -2265,6 +2766,9 @@ const clearAllTextFields = async () => {
                 });
             }
             // === END DRAGGING LOGIC ===
+
+            // Make sure the customization panel visibility reflects current view on load
+            try { updateUI(); } catch (_) {}
 
             // --- Initial Setup ---
             window.customTemplateDefinitions = null; 
